@@ -1,0 +1,3 @@
+méthode heuristique : 
+Placer d'abord dans la liste solution les pièces des bords :
+difficulté : il faut garder en mémoire l'ordre de toutes les pièces quand on rajoute ensuite celles du milieu...
