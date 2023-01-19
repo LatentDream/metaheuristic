@@ -19,7 +19,6 @@ def parse_arguments():
 def get_results(size, agent_type):
     """Renvoie les résultats pour toutes les méthodes pour toutes les instances d'une certaine taille.
     size contient un string 'small' pour les petites instances ou 'medium' pour les moyennes"""
-
     results={}
     times={}
     for directory in [size]:
