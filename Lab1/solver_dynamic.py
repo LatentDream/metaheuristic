@@ -6,5 +6,7 @@ def dynamic_knapsack_recursive(knapsack_instance):
     :param item: le numéro du dernier item considéré
     :param cap: la capacité maximale considérée"""
 
+    ## TODO: Recursif en arbre avec un stop de temps ?
+
     # TODO
     raise Exception("Method not implemented")

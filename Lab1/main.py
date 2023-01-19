@@ -78,7 +78,7 @@ def plot_all_results(size):
 
     ax2.set_title("Comparaison des valeurs")
     ax2.legend()
-    plt.show(fig)
+    plt.show()
 
     return
 
