@@ -2,7 +2,7 @@ import argparse
 import time
 import eternity_puzzle
 import solver_random
-import solver_heuristic
+import solver_heuristicv1
 import solver_local_search
 import solver_advanced
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         solution, n_conflict = solver_random.solve_best_random(e, 100000)
     elif args.agent == "heuristic":
         # Agent based on a constructive heuristic (Phase 1)
-        solution, n_conflict = solver_heuristic.solve_heuristic(e)
+        solution, n_conflict = solver_heuristicv1.solve_heuristic(e)
     elif args.agent == "local_search":
         # Agent based on a local search (Phase 2)
         solution, n_conflict = solver_local_search.solve_local_search(e)

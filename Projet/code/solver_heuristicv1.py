@@ -67,11 +67,11 @@ def get_current_cost(solution, eternity_puzzle):
                 k = eternity_puzzle.board_size * j + i
                 k_west = eternity_puzzle.board_size * j + (i - 1)
                 k_south = eternity_puzzle.board_size * (j - 1) + i
-                print(
-                    "\n solution {} \n n_placed {} \n n_lines {}\n n_columns {}\n i : {} \n j : {} \n k : {} \n k_west {} \n k_south {}".format(
-                        solution, n_placed, n_lines, n_columns, i, j, k, k_west, k_south
-                    )
-                )
+                # print(
+                #     "\n solution {} \n n_placed {} \n n_lines {}\n n_columns {}\n i : {} \n j : {} \n k : {} \n k_west {} \n k_south {}".format(
+                #         solution, n_placed, n_lines, n_columns, i, j, k, k_west, k_south
+                #     )
+                # )
 
                 if i == 0 and solution[k][WEST] != GRAY:
                     n_conflict += 1
