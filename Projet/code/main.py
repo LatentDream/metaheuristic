@@ -11,16 +11,17 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Instances parameters
-    parser.add_argument("--agent", type=str, default="random")
-    parser.add_argument("--infile", type=str, default="input")
-    parser.add_argument("--outfile", type=str, default="solution.txt")
-    parser.add_argument("--visufile", type=str, default="visualization.png")
+    parser.add_argument('--agent', type=str, default='random')
+    parser.add_argument('--infile', type=str, default='input')
+    parser.add_argument('--outfile', type=str, default='solution.txt')
+    parser.add_argument('--visufile', type=str, default='visualization.png')
 
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     args = parse_arguments()
+
 
     e = eternity_puzzle.EternityPuzzle(args.infile)
 
@@ -29,11 +30,12 @@ if __name__ == "__main__":
     print("[INFO] input file: %s" % args.infile)
     print("[INFO] output file: %s" % args.outfile)
     print("[INFO] visualization file: %s" % args.visufile)
-    print("[INFO] board size: %s x %s" % (e.board_size, e.board_size))
+    print("[INFO] board size: %s x %s" % (e.board_size,e.board_size))
     print("[INFO] solver selected: %s" % args.agent)
     print("***********************************************************")
 
     start_time = time.time()
+
 
     if args.agent == "random":
         # Take the best of 1,000,000 random trials
@@ -49,10 +51,11 @@ if __name__ == "__main__":
         solution, n_conflict = solver_advanced.solve_advanced(e)
     else:
         raise Exception("This agent does not exist")
-    solving_time = round((time.time() - start_time) / 60, 2)
+    solving_time = round((time.time() - start_time) / 60,2)
 
-    e.display_solution(solution, args.visufile)
+    e.display_solution(solution,args.visufile)
     e.print_solution(solution, args.outfile)
+
 
     print("***********************************************************")
     print("[INFO] Solution obtained")
