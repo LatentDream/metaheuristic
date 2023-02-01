@@ -1,11 +1,12 @@
 """
     Guillaume Blanché : 2200151
-    Guillaume Thibault : 
+    Guillaume Thibault : 1948612
 """
 
 import argparse
 import solver_naive
 import solver_advanced
+import solver_advanced_atlas
 import time
 from network import PCSTP
 
@@ -43,6 +44,8 @@ if __name__ == '__main__':
     if args.agent == "naive":
         # assign a different time slot for each course
         solution = solver_naive.solve(pcstp)
+    elif args.agent == "atlas":
+        solution = solver_advanced_atlas.solve(pcstp)
     elif args.agent == "advanced":
         # Your nice agent
         solution = solver_advanced.solve(pcstp)
