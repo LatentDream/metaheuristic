@@ -28,25 +28,30 @@ def solve(pcstp: PCSTP, seed=0) -> List[Tuple[int]]:
     ######! Local search heuristique
     ##? Starting with a arbitrary solution
     s = build_random_solution(pcstp)
-
+    i = 0
     ##? Tant qu'il existe une solution dans le voisinage
     while True:
         ##? Changer la solution localement
         s_i = find_better_neighboor(s, pcstp)
 
         ##? Check if better
-        print(f"sol: {pcstp.get_solution_cost(s)} <= s_i {pcstp.get_solution_cost(s_i)}")
+        s_i
+        print(f"{i} sol: {pcstp.get_solution_cost(s)} <= s_i {pcstp.get_solution_cost(s_i)}")
 
         if pcstp.get_solution_cost(s) <=  pcstp.get_solution_cost(s_i):
             if random.random() > 0.4 and pcstp.verify_solution(s_i):
                 break
+            elif i > 1000:
+                break
             else: 
                 if random.random() > 0.1 and pcstp.get_solution_cost(s_i) < 0:
                     s = s_i
+                i += 1¨
                 continue
         elif pcstp.get_solution_cost(s_i) > 0:
-            s = s_i
-
+            s = s_i 
+            i = 0
+        
     ##? Retourner s_i
     return list(s_i)
 
@@ -63,7 +68,7 @@ def build_random_solution(pcstp: PCSTP) -> List[Tuple[int]]:
 
 def find_better_neighboor(solution: List[Tuple[int]], pcstp: PCSTP) -> List[Tuple[int]]:
     if not len(solution): return
-    ##? Choose a random node in the solution
+    ##? Choose a random node in the sol¨ution
     solution = deepcopy(solution)
     edge = random.choice(solution)
     node = random.choice(edge)

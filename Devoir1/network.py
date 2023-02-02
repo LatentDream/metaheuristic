@@ -1,8 +1,3 @@
-"""
-    Guillaume Blanché : 2200151
-    Guillaume Thibault : 1948612
-"""
-
 import bokeh
 from bokeh.transform import transform
 from bokeh.models import BoxZoomTool, Circle, CustomJSTransform, LabelSet, HoverTool, MultiLine, Plot, Range1d, ResetTool
@@ -27,6 +22,7 @@ class PCSTP():
         """
         self.num_terminal_nodes = 0
         self.network = nx.Graph()
+        self.total_terminal_weight = 0
         with open(filename, "r") as f:
             lines = f.readlines()
             num_nodes = int(lines[0].split(" ")[0])
@@ -43,6 +39,7 @@ class PCSTP():
                     node_id, node_weight = int(line[1]), float(line[2])
                     node_attributes[node_id]["terminal"] = 1
                     node_attributes[node_id]["weight"] = node_weight
+                    self.total_terminal_weight += node_weight
 
             nx.set_node_attributes(self.network, 0, "terminal")
             nx.set_node_attributes(self.network, 0, "weight")
@@ -82,7 +79,7 @@ class PCSTP():
         included_edges = []
         excluded_edges = []
         for edge in self.network.edges():
-            if edge in solution:
+            if edge in solution or edge[::-1] in solution:
                 included_edges.append(edge)
             else:
                 excluded_edges.append(edge)
@@ -165,7 +162,8 @@ class PCSTP():
         all_solution_edges_in_original_graph = True
         sorted_original_edges = sorted(self.network.edges())
         for solution_edge in sorted(solution_graph.edges()):
-            all_solution_edges_in_original_graph = all_solution_edges_in_original_graph and (solution_edge in sorted_original_edges)
+            all_solution_edges_in_original_graph = all_solution_edges_in_original_graph and (
+                (solution_edge in sorted_original_edges) or (solution_edge[::-1] in sorted_original_edges))
 
         return all_solution_edges_in_original_graph and has_no_cycle and has_one_connected_component
     
@@ -179,10 +177,13 @@ class PCSTP():
             total_weight (int): cost of the solution
         """
         solution_graph = nx.Graph(solution)
+        included_terminals_weight = 0
         total_weight = 0
         for node in solution_graph.nodes():
             node_weight = self.network.nodes[node]["weight"]
-            total_weight += node_weight
+            included_terminals_weight += node_weight
+
+        total_weight += self.total_terminal_weight - included_terminals_weight
 
         for edge in solution_graph.edges():
             edge_weight = self.network.edges[edge]["weight"]
