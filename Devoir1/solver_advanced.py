@@ -37,24 +37,49 @@ def generate_random_solution(pcstp):
     """
     Generate a random solution : select randomly if each edge is accepted or not
     """
-    return [edge for edge in pcstp.network.edges if random.choice([True, False])]
+    return [
+        edge for edge in pcstp.network.edges(data=True) if random.choice([True, False])
+    ]
+
+
+def generate_random_valid_solution(pcstp):
+    """
+    Generate a random solution : select randomly if each edge is accepted or not
+    """
+    solution = []
+    for edge in pcstp.network.edges(data=True):
+        candidate = deepcopy(solution)
+        candidate.append(edge)
+        if random.choice([True, False]) and pcstp.verify_solution(candidate):
+            solution.append(edge)
+    return solution
 
 
 # Neighboorhood function #
 def generate_neighboorhood(pcstp, solution):
     """
     Neighboorhood function:
-
-
     """
+    selected_edges = []
+    for e in solution:
+        a, b, w = e
+        selected_edges.append((a, b, w))
+        selected_edges.append((b, a, w))
+
+    not_selected_edges = []
+    for e in pcstp.network.edges(data=True):
+        a, b, w = e
+        if (b, a, w) not in not_selected_edges:
+            not_selected_edges.append((a, b, w))
+
     not_selected_edges = [
-        e for e in pcstp.network.edges(data=True) if e not in solution
+        e for e in pcstp.network.edges(data=True) if e not in selected_edges
     ]
+
     neighbourhood = []
 
-    for edge in solution:
-
-        neighbour1 = deepcopy(solution)
+    for edge in selected_edges:
+        neighbour1 = deepcopy(selected_edges)
         neighbour1.remove(edge)
         neighbourhood.append(neighbour1)
 
@@ -84,7 +109,7 @@ def accept_all_neighboors(pcstp, neighboorhood):
     """
     validity_neighborhood = [n for n in neighboorhood if pcstp.verify_solution(n)]
     if len(validity_neighborhood) == 0:
-        validity_neighborhood.append(solver_naive.solve(pcstp))
+        validity_neighborhood.append(generate_random_valid_solution(pcstp))
     return validity_neighborhood
 
 
@@ -103,6 +128,7 @@ def local_search_with_restart(pcstp, max_time=20 * 60):
     while elapsed_time < max_time:
 
         candidate = random.choices(valid_neighboorhood)[0]
+        # print(candidate)
         delta = pcstp.get_solution_cost(candidate) - pcstp.get_solution_cost(solution)
         probability = max(
             np.exp(-delta / temperature), 0.01
@@ -117,6 +143,7 @@ def local_search_with_restart(pcstp, max_time=20 * 60):
             print("best_solution found")
 
         temperature = alpha * temperature
+        # print(solution)
         neighboorhood = generate_neighboorhood(pcstp, solution)
         valid_neighboorhood = accept_all_neighboors(pcstp, neighboorhood)
 
