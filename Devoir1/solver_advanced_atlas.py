@@ -46,7 +46,7 @@ def solve(pcstp: PCSTP, seed=0) -> List[Tuple[int]]:
             else: 
                 if random.random() > 0.1 and pcstp.get_solution_cost(s_i) < 0:
                     s = s_i
-                i += 1¨
+                i += 1
                 continue
         elif pcstp.get_solution_cost(s_i) > 0:
             s = s_i 
