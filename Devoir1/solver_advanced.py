@@ -65,38 +65,6 @@ def generate_neighboorhood(pcstp, solution):
 
     return neighbourhood
 
-    # for edge in solution:
-    #     a,b = edge
-    #     for neighbor in pcstp.network.ad[a]:
-    #         if (a,neighbor) in solution :
-    #             neighbour1 = deepcopy(solution)
-    #             neighbour1.remove((a,neighbor))
-    #         elif (neighbor,a) in solution:
-    #             neighbour1.remove((neighbor,a))
-
-    # ##? Choose a random node in the solution
-    # solution = deepcopy(solution)
-    # edge = random.choice(solution)
-    # node = random.choice(edge)
-
-    # temperature = 0.75
-
-    # ##? Local search -> Look at the neighboor and switch the connection with P(temperautre)
-    # for neighboor in pcstp.network.adj[node]:
-    #     if random.random() < temperature:
-    #         if (node, neighboor) in solution:
-    #                 solution.remove((node, neighboor))
-    #         elif (neighboor, node) in solution:
-    #                 solution.remove((neighboor, node))
-    #         else:
-    #             ##? Check if a cicle is created
-    #             new_connexion = (node, neighboor)
-    #             solution.append(new_connexion)
-    #             if pcstp.verify_solution(solution) or random.random() < 0.1:
-    #                 continue
-    #             else:
-    #                 solution.remove(new_connexion)
-
 
 # Validity functions
 def is_improving_validity_function(pcstp, neighboorhood, solution):
@@ -120,7 +88,7 @@ def accept_all_neighboors(pcstp, neighboorhood):
     return validity_neighborhood
 
 
-def local_search_with_restart(pcstp, max_time=3600):
+def local_search_with_restart(pcstp, max_time=20 * 60):
 
     start_time = time.time()
     elapsed_time = 0
