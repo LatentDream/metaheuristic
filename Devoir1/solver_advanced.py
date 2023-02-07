@@ -1,20 +1,19 @@
 """
     Guillaume Blanché : 2200151
-    Guillaume Thibault : 
+    Guillaume Thibault : 1948612
 """
 
 from typing import List, Tuple
 from network import PCSTP
 import networkx as nx
 import numpy as np
-import math
 import random
 import time
 from copy import deepcopy
-import solver_naive
 
-t_init = 100
-alpha = 0.99
+
+t_init = 1000
+alpha = 0.999999
 
 
 def solve(pcstp: PCSTP) -> List[Tuple[int]]:
@@ -69,12 +68,12 @@ def generate_neighboorhood(pcstp, solution):
     not_selected_edges = []
     for e in pcstp.network.edges(data=True):
         a, b, w = e
-        if (b, a, w) not in not_selected_edges:
+        if (
+            (a, b, w) not in selected_edges
+            and (b, a, w) not in selected_edges
+            and (b, a, w) not in not_selected_edges
+        ):
             not_selected_edges.append((a, b, w))
-
-    not_selected_edges = [
-        e for e in pcstp.network.edges(data=True) if e not in selected_edges
-    ]
 
     neighbourhood = []
 
@@ -137,15 +136,14 @@ def local_search_with_restart(pcstp, max_time=20 * 60):
             solution = candidate
         elif np.random.binomial(1, probability):
             solution = candidate
+
         if pcstp.get_solution_cost(solution) < pcstp.get_solution_cost(best_solution):
             best_solution = solution
             print("best_solution found")
 
         temperature = alpha * temperature
-        # print(solution)
         neighboorhood = generate_neighboorhood(pcstp, solution)
         valid_neighboorhood = accept_all_neighboors(pcstp, neighboorhood)
-
         elapsed_time = time.time() - start_time
 
     best_solution = format_solution(best_solution)
