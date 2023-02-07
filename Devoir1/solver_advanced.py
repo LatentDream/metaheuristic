@@ -127,8 +127,7 @@ def local_search_with_restart(pcstp, max_time=20 * 60):
 
     while elapsed_time < max_time:
 
-        candidate = random.choices(valid_neighboorhood)[0]
-        # print(candidate)
+        candidate = valid_neighboorhood[0]
         delta = pcstp.get_solution_cost(candidate) - pcstp.get_solution_cost(solution)
         probability = max(
             np.exp(-delta / temperature), 0.01
