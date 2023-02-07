@@ -109,6 +109,17 @@ def is_improving_validity_function(pcstp, neighboorhood, solution):
     return validity_neighborhood
 
 
+def first_improving(pcstp, neighboorhood, solution):
+    """
+    Return only the list of neighbours that are improving the evaluation cost
+    """
+    for n in neighboorhood:
+        if pcstp.get_solution_cost(n) <= pcstp.get_solution_cost(solution):
+            return n
+    # If no improving neighbor was found, return a random valid solution
+    return generate_random_valid_solution(pcstp)
+
+
 # def accept_all_neighboors(pcstp, neighboorhood):
 #     """
 #     All the neighboors are valid (used in simulated annealing)
@@ -126,14 +137,14 @@ def local_search_with_restart(pcstp, max_time=20 * 60):
 
     solution = generate_random_solution(pcstp)
     neighboorhood = generate_neighboorhood(pcstp, solution)
-    valid_neighboorhood = is_improving_validity_function(pcstp, neighboorhood, solution)
+    valid_neighbor = first_improving(pcstp, neighboorhood, solution)
 
     temperature = t_init
     best_solution = solution
 
     while elapsed_time < max_time:
 
-        candidate = random.choice(valid_neighboorhood)
+        candidate = valid_neighbor
         delta = pcstp.get_solution_cost(candidate) - pcstp.get_solution_cost(solution)
         probability = max(
             np.exp(-delta / temperature), 0.01
@@ -150,9 +161,8 @@ def local_search_with_restart(pcstp, max_time=20 * 60):
 
         temperature = alpha * temperature
         neighboorhood = generate_neighboorhood(pcstp, solution)
-        valid_neighboorhood = is_improving_validity_function(
-            pcstp, neighboorhood, solution
-        )
+        valid_neighbor = first_improving(pcstp, neighboorhood, solution)
+
         elapsed_time = time.time() - start_time
 
     best_solution = format_solution(best_solution)
