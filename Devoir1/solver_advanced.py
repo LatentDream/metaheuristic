@@ -12,8 +12,8 @@ import time
 from copy import deepcopy
 
 
-t_init = 1000
-alpha = 0.999999
+t_init = 10
+alpha = 0.9
 
 
 def solve(pcstp: PCSTP) -> List[Tuple[int]]:
@@ -28,7 +28,7 @@ def solve(pcstp: PCSTP) -> List[Tuple[int]]:
             would be a solution where edges (1, 2), (3, 4) and (5, 6) are included and all other edges of the graph
             are excluded
     """
-    return local_search_with_restart(pcstp)
+    return local_search_with_restart(pcstp, 60)
 
 
 # Initialization functions #
@@ -80,12 +80,14 @@ def generate_neighboorhood(pcstp, solution):
     for edge in selected_edges:
         neighbour1 = deepcopy(selected_edges)
         neighbour1.remove(edge)
-        neighbourhood.append(neighbour1)
+        if pcstp.verify_solution(neighbour1):
+            neighbourhood.append(neighbour1)
 
     for edge in not_selected_edges:
         neighbour2 = deepcopy(solution)
         neighbour2.append(edge)
-        neighbourhood.append(neighbour2)
+        if pcstp.verify_solution(neighbour2):
+            neighbourhood.append(neighbour2)
 
     return neighbourhood
 
@@ -95,21 +97,26 @@ def is_improving_validity_function(pcstp, neighboorhood, solution):
     """
     Return only the list of neighbours that are improving the evaluation cost
     """
-    return [
+    validity_neighborhood = [
         n
         for n in neighboorhood
         if pcstp.get_solution_cost(n) <= pcstp.get_solution_cost(solution)
     ]
 
-
-def accept_all_neighboors(pcstp, neighboorhood):
-    """
-    All the neighboors are valid (used in simulated annealing)
-    """
-    validity_neighborhood = [n for n in neighboorhood if pcstp.verify_solution(n)]
     if len(validity_neighborhood) == 0:
         validity_neighborhood.append(generate_random_valid_solution(pcstp))
+
     return validity_neighborhood
+
+
+# def accept_all_neighboors(pcstp, neighboorhood):
+#     """
+#     All the neighboors are valid (used in simulated annealing)
+#     """
+#     validity_neighborhood = [n for n in neighboorhood if pcstp.verify_solution(n)]
+#     if len(validity_neighborhood) == 0:
+#         validity_neighborhood.append(generate_random_valid_solution(pcstp))
+#     return validity_neighborhood
 
 
 def local_search_with_restart(pcstp, max_time=20 * 60):
@@ -119,14 +126,14 @@ def local_search_with_restart(pcstp, max_time=20 * 60):
 
     solution = generate_random_solution(pcstp)
     neighboorhood = generate_neighboorhood(pcstp, solution)
-    valid_neighboorhood = accept_all_neighboors(pcstp, neighboorhood)
+    valid_neighboorhood = is_improving_validity_function(pcstp, neighboorhood, solution)
 
     temperature = t_init
     best_solution = solution
 
     while elapsed_time < max_time:
 
-        candidate = valid_neighboorhood[0]
+        candidate = random.choice(valid_neighboorhood)
         delta = pcstp.get_solution_cost(candidate) - pcstp.get_solution_cost(solution)
         probability = max(
             np.exp(-delta / temperature), 0.01
@@ -143,7 +150,9 @@ def local_search_with_restart(pcstp, max_time=20 * 60):
 
         temperature = alpha * temperature
         neighboorhood = generate_neighboorhood(pcstp, solution)
-        valid_neighboorhood = accept_all_neighboors(pcstp, neighboorhood)
+        valid_neighboorhood = is_improving_validity_function(
+            pcstp, neighboorhood, solution
+        )
         elapsed_time = time.time() - start_time
 
     best_solution = format_solution(best_solution)
