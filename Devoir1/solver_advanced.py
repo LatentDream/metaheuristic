@@ -14,6 +14,7 @@ from copy import deepcopy
 
 t_init = 1
 
+
 def solve(pcstp: PCSTP) -> List[Tuple[int]]:
     """Advanced solver for the prize-collecting Steiner tree problem.
 
@@ -97,9 +98,21 @@ def first_improving_neighbor(pcstp, solution):
     for e in solution:
         a, b, w = e
         selected_edges.append((a, b, w))
+        if len(selected_edges) == 100:
+            break
 
     not_selected_edges = []
-    for e in pcstp.network.edges(data=True):
+
+    candidate_edges = []
+    for edge in pcstp.network.edges(data=True):
+        if len(candidate_edges) == 100:
+            break
+        if random.choice([True, False]):
+            candidate_edges.append(edge)
+
+    for e in candidate_edges:
+        if len(not_selected_edges) == 100:
+            break
         a, b, w = e
         if (
             (a, b, w) not in selected_edges
@@ -111,17 +124,17 @@ def first_improving_neighbor(pcstp, solution):
     for edge in selected_edges:
         neighbour1 = deepcopy(selected_edges)
         neighbour1.remove(edge)
-        if pcstp.verify_solution(neighbour1) and pcstp.get_solution_cost(
-            neighbour1
-        ) < pcstp.get_solution_cost(solution):
+        if pcstp.get_solution_cost(neighbour1) < pcstp.get_solution_cost(
+            solution
+        ) and pcstp.verify_solution(neighbour1):
             return neighbour1
 
     for edge in not_selected_edges:
         neighbour2 = deepcopy(solution)
         neighbour2.append(edge)
-        if pcstp.verify_solution(neighbour2) and pcstp.get_solution_cost(
-            neighbour2
-        ) < pcstp.get_solution_cost(solution):
+        if pcstp.get_solution_cost(neighbour2) < pcstp.get_solution_cost(
+            solution
+        ) and pcstp.verify_solution(neighbour2):
             return neighbour2
 
     return neighbour1
@@ -144,15 +157,15 @@ def first_improving_neighbor(pcstp, solution):
 #     return validity_neighborhood
 
 
-def first_improving(pcstp, neighboorhood, solution):
-    """
-    Return only the list of neighbours that are improving the evaluation cost
-    """
-    for n in neighboorhood:
-        if pcstp.get_solution_cost(n) < pcstp.get_solution_cost(solution):
-            return n
-    # If no improving neighbor was found, return a random valid solution
-    return generate_random_valid_solution(pcstp)
+# def first_improving(pcstp, neighboorhood, solution):
+#     """
+#     Return only the list of neighbours that are improving the evaluation cost
+#     """
+#     for n in neighboorhood:
+#         if pcstp.get_solution_cost(n) < pcstp.get_solution_cost(solution):
+#             return n
+#     # If no improving neighbor was found, return a random valid solution
+#     return generate_random_valid_solution(pcstp)
 
 
 # def accept_all_neighboors(pcstp, neighboorhood):
@@ -171,8 +184,8 @@ def local_search_with_restart(pcstp, max_time=19 * 60):
     elapsed_time = 0
 
     solution = generate_random_solution(pcstp)
-    valid_neighbor = first_improving_neighbor(pcstp, solution)
 
+    valid_neighbor = first_improving_neighbor(pcstp, solution)
     temperature = t_init
     best_solution = solution
 
@@ -194,7 +207,9 @@ def local_search_with_restart(pcstp, max_time=19 * 60):
             print("best_solution found")
 
         temperature = t_init * (max_time - elapsed_time) / (max_time)
+
         valid_neighbor = first_improving_neighbor(pcstp, solution)
+
         elapsed_time = time.time() - start_time
 
     best_solution = format_solution(best_solution)
