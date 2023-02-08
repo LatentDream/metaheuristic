@@ -27,7 +27,7 @@ def solve(pcstp: PCSTP) -> List[Tuple[int]]:
             would be a solution where edges (1, 2), (3, 4) and (5, 6) are included and all other edges of the graph
             are excluded
     """
-    return local_search_with_restart(pcstp, 60)
+    return local_search_with_restart(pcstp)
 
 
 # Initialization functions #
@@ -51,44 +51,6 @@ def generate_random_valid_solution(pcstp):
         if random.choice([True, False]) and pcstp.verify_solution(candidate):
             solution.append(edge)
     return solution
-
-
-# Neighboorhood function #
-# def generate_neighboorhood(pcstp, solution):
-#     """
-#     Neighboorhood function:
-#     """
-#     selected_edges = []
-#     for e in solution:
-#         a, b, w = e
-#         selected_edges.append((a, b, w))
-
-#     not_selected_edges = []
-#     for e in pcstp.network.edges(data=True):
-#         a, b, w = e
-#         if (
-#             (a, b, w) not in selected_edges
-#             and (b, a, w) not in selected_edges
-#             and (b, a, w) not in not_selected_edges
-#         ):
-#             not_selected_edges.append((a, b, w))
-
-#     neighbourhood = []
-
-#     for edge in selected_edges:
-#         neighbour1 = deepcopy(selected_edges)
-#         neighbour1.remove(edge)
-#         if pcstp.verify_solution(neighbour1):
-#             neighbourhood.append(neighbour1)
-
-#     for edge in not_selected_edges:
-#         neighbour2 = deepcopy(solution)
-#         neighbour2.append(edge)
-#         if pcstp.verify_solution(neighbour2):
-#             neighbourhood.append(neighbour2)
-
-#     return neighbourhood
-
 
 def first_improving_neighbor(pcstp, solution):
     """
@@ -138,45 +100,6 @@ def first_improving_neighbor(pcstp, solution):
             return neighbour2
 
     return neighbour1
-
-
-# Validity functions
-# def is_improving_validity_function(pcstp, neighboorhood, solution):
-#     """
-#     Return only the list of neighbours that are improving the evaluation cost
-#     """
-#     validity_neighborhood = [
-#         n
-#         for n in neighboorhood
-#         if pcstp.get_solution_cost(n) < pcstp.get_solution_cost(solution)
-#     ]
-
-#     if len(validity_neighborhood) == 0:
-#         validity_neighborhood.append(generate_random_valid_solution(pcstp))
-
-#     return validity_neighborhood
-
-
-# def first_improving(pcstp, neighboorhood, solution):
-#     """
-#     Return only the list of neighbours that are improving the evaluation cost
-#     """
-#     for n in neighboorhood:
-#         if pcstp.get_solution_cost(n) < pcstp.get_solution_cost(solution):
-#             return n
-#     # If no improving neighbor was found, return a random valid solution
-#     return generate_random_valid_solution(pcstp)
-
-
-# def accept_all_neighboors(pcstp, neighboorhood):
-#     """
-#     All the neighboors are valid (used in simulated annealing)
-#     """
-#     validity_neighborhood = [n for n in neighboorhood if pcstp.verify_solution(n)]
-#     if len(validity_neighborhood) == 0:
-#         validity_neighborhood.append(generate_random_valid_solution(pcstp))
-#     return validity_neighborhood
-
 
 def local_search_with_restart(pcstp, max_time=19 * 60):
 
