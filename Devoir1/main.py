@@ -7,6 +7,7 @@ import argparse
 import solver_naive
 import solver_advanced
 import solver_advanced_atlas
+import solver_advanced_hernes
 import time
 from network import PCSTP
 
@@ -46,6 +47,8 @@ if __name__ == '__main__':
         solution = solver_naive.solve(pcstp)
     elif args.agent == "atlas":
         solution = solver_advanced_atlas.solve(pcstp)
+    elif args.agent == "hernes":
+        solution = solver_advanced_hernes.solve(pcstp)
     elif args.agent == "advanced":
         # Your nice agent
         solution = solver_advanced.solve(pcstp)

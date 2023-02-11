@@ -1,6 +1,5 @@
 import time
 
-
 def timer(func):
     """
     Python wrapper to print the time of execute of a func
