@@ -5,8 +5,7 @@
 from typing import List, Tuple
 from network import PCSTP
 import random
-from copy import deepcopy
-from utils.tree import build_valid_solution
+from utils.tree import build_valid_solution, Node
 
 
 def solve(pcstp: PCSTP, seed=0) -> List[Tuple[int]]:
@@ -27,9 +26,8 @@ def solve(pcstp: PCSTP, seed=0) -> List[Tuple[int]]:
     ######! Local search heuristique
     ##? Starting with a arbitrary VALID solution
     root_node  = build_valid_solution(pcstp, True) 
-    s = root_node.get_connection_list()
-    print(s)
-    return s
+    connections, nodes_id = root_node.get_connection_list()
+    return connections
 
     ##? As long as there is a solution in the neighborhoods
     while True:
@@ -47,18 +45,29 @@ def solve(pcstp: PCSTP, seed=0) -> List[Tuple[int]]:
     
 
 
-def find_better_local_solution(solution: List[Tuple[int]], pcstp: PCSTP) -> List[Tuple[int]]:
-    if not len(solution): return
+def find_better_local_solution(node: Node, pcstp: PCSTP) -> Tuple[Node, bool]:
+    """ Try to find a better solution in a neighborhood 
+    return: 
+        @Node: node from a tree with the choosing solution
+        @bool: True if it's a better solution
+    """
     ##? Choose a random node in the solution
-    solution = deepcopy(solution) 
-    edge = random.choice(solution)
-    node = random.choice(edge)
+    connections, nodes_id = node.get_connection_list()
+    node_id = random.choice(nodes_id)
 
     ##? Rebuild a representation of the tree with `node` as the root
-
-
+    root = node.get_node(node_id).root()
 
     ##? Add or remove connection from the root to his children
-    #?   -> Make sure node is not already in the tree (No cycle)
+    for adj_node in pcstp.network.adj[root.id]:
+
+        #? Case: Try to add a node
+        if adj_node not in nodes_id: # Todo: Could be a set for faster look up time
+            #? Check if the solution is better
+            pass
+
+        #? Case: Delete a node already in the tree -> Chop chop a branch
+        else:
+            pass
 
 

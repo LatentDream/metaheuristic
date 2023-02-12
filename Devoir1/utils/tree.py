@@ -11,6 +11,15 @@ class Node:
         self.parent = parent
         if parent != None: self.parent.children.add(self)
 
+    def get_node(self, node_id):
+        self.root()
+        def find(node, node_id):
+            if node.id == node_id:
+                return node
+            for child in node.children:
+                found_node = find(child, node_id)
+                if found_node != None:
+                    return found_node
 
     def root(self):
         """ Convert this node as the root """
@@ -31,25 +40,29 @@ class Node:
         self.parent = None
         convert(parent, self)
 
+        return self
+
  
-    def get_connection_list(self) -> List[Tuple[int]]:
+    def get_connection_list(self) -> Tuple[List[Tuple[int]], List[int]]:
         self.root()
 
         return self.get_children_connection_list()
 
 
-    def get_children_connection_list(self) -> List[Tuple[int]]:
+    def get_children_connection_list(self) -> Tuple[List[Tuple[int]], List[int]]:
         connections = set()
+        nodes_id = list()
         def add_connection(node):
             for child in node.children:
                 connection = (node.id, child.id) 
                 # Block infinite recursive call in case of cycle
                 if connection not in connections:
+                    nodes_id.append(child.id)
                     connections.add(connection)
                     add_connection(child)
+        nodes_id.append(self.id)
         add_connection(self)
-
-        return list(connections)
+        return list(connections), nodes_id
 
 
     def __str__(self) -> str:
