@@ -7,7 +7,7 @@ from network import PCSTP
 from tqdm import tqdm
 import random
 from copy import deepcopy
-from utils import timer
+from utils.benchmarking import timer
 import time
 
 

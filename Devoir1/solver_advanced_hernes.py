@@ -26,7 +26,9 @@ def solve(pcstp: PCSTP, seed=0) -> List[Tuple[int]]:
 
     ######! Local search heuristique
     ##? Starting with a arbitrary VALID solution
-    root_node, s  = build_valid_solution(pcstp, True) 
+    root_node  = build_valid_solution(pcstp, True) 
+    s = root_node.get_connection_list()
+    print(s)
     return s
 
     ##? As long as there is a solution in the neighborhoods
