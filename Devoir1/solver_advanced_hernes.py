@@ -21,27 +21,42 @@ def solve(pcstp: PCSTP, seed=0) -> List[Tuple[int]]:
             are excluded
     """
     if seed: 
-        random.seed(seed)   
+        random.seed(seed) #! Still schtocastic 
 
     ######! Local search heuristique
     ##? Starting with a arbitrary VALID solution
-    root_node  = build_valid_solution(pcstp, True) 
-    connections, nodes_id = root_node.get_connection_list()
-    return connections
+    node  = build_valid_solution(pcstp, True) 
+
+    ##? Init param for nb of local search before a break check
+    nb_try_in_batch = len(pcstp.network.nodes) * 4
+    changed_in_batch = False
+    nb_batch_done = 1
+    nb_try = 0
 
     ##? As long as there is a solution in the neighborhoods
     while True:
 
         ##? Change the solution locally
-        s_i = find_better_local_solution(s, pcstp)
-
-        ##? Check if better
-        print(f"sol: {pcstp.get_solution_cost(s)} <= s_i {pcstp.get_solution_cost(s_i)}")
-        if pcstp.get_solution_cost(s) <=  pcstp.get_solution_cost(s_i):
-            break
+        node, change_made = find_better_local_solution(node, pcstp)
+        changed_in_batch |= change_made
+        nb_try += 1
+        print(f"{nb_try}/{nb_try_in_batch} - {changed_in_batch} - {pcstp.get_solution_cost(node.get_connection_list()[0])}")
+        
+        ##? Check if better when batch ended
+        if nb_try >= nb_try_in_batch:
+            if not changed_in_batch:
+                print(f"Number of batch done: {nb_batch_done}")
+                break
+            ##? Reduce batch size  
+            else:
+                nb_try_in_batch = len(pcstp.network.nodes) - nb_batch_done
+                changed_in_batch = False
+                nb_batch_done += 1
+                nb_try = 0
         
     ##? Retourner s_i
-    return list(s_i)
+    connections, nodes_id = node.get_connection_list()
+    return connections
     
 
 
@@ -51,23 +66,54 @@ def find_better_local_solution(node: Node, pcstp: PCSTP) -> Tuple[Node, bool]:
         @Node: node from a tree with the choosing solution
         @bool: True if it's a better solution
     """
-    ##? Choose a random node in the solution
+    #? Choose a random node in the solution
     connections, nodes_id = node.get_connection_list()
     node_id = random.choice(nodes_id)
 
-    ##? Rebuild a representation of the tree with `node` as the root
+    #? Rebuild a representation of the tree with `node_id` as the root
     root = node.get_node(node_id).root()
+    current_score = pcstp.get_solution_cost(connections)
+    change_made = False
 
-    ##? Add or remove connection from the root to his children
-    for adj_node in pcstp.network.adj[root.id]:
+    #? Add or remove connection from the root to his children
+    for adj_node_id in pcstp.network.adj[root.id]:
 
         #? Case: Try to add a node
-        if adj_node not in nodes_id: # Todo: Could be a set for faster look up time
-            #? Check if the solution is better
-            pass
+        if adj_node_id not in nodes_id:
+            #? Add the new node
+            new_child = Node(adj_node_id, root)
+            #? Check if the solution is better -> Keep or delete node
+            new_connections, new_nodes_id = node.get_connection_list()
+            new_score = pcstp.get_solution_cost(new_connections)
+            if  new_score < current_score or random.random() > 0.5: # Todo: stochasticity ?
+                change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
+                # print(f"Adding...")
+            else:
+                root.children.remove(new_child)
 
         #? Case: Delete a node already in the tree -> Chop chop a branch
         else:
-            pass
+            #? Find the node in the children
+            old_child = None
+            for child in root.children:
+                if child.id == adj_node_id:
+                    old_child = child
+                    break
+            
+            #? If node is attached to the current root -> Remove it, otherwise we can't do anayting
+            if old_child is not None:
+                root.children.remove(old_child)
+                #? Check if the solution is better -> chop chop the tree or put the node back
+                new_connections, new_nodes_id = root.get_connection_list()
+                new_score = pcstp.get_solution_cost(new_connections)
+                #! Too easy to remove node: Add a limitation on the branch of the branch the algo can chop chop
+                if new_score < current_score :
+                    change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
+                    # print(f"Removing...")
 
+                else:
+                    root.children.add(old_child)
+
+
+    return root, change_made
 

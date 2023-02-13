@@ -21,8 +21,13 @@ class Node:
                 if found_node != None:
                     return found_node
 
+        return find(self, node_id)
+
     def root(self):
         """ Convert this node as the root """
+        if self.parent == None: 
+            return self
+
         def convert(node, child_that_became_parent):
             parent = node.parent
             # Remove new parent from node child
@@ -34,7 +39,6 @@ class Node:
                 node.children.add(parent)
                 convert(parent, node)
         
-        if self.parent == None: return
         parent = self.parent
         self.children.add(parent)
         self.parent = None
@@ -44,9 +48,11 @@ class Node:
 
  
     def get_connection_list(self) -> Tuple[List[Tuple[int]], List[int]]:
-        self.root()
+        node = self
+        while node.parent != None:
+            node = node.parent
 
-        return self.get_children_connection_list()
+        return node.get_children_connection_list()
 
 
     def get_children_connection_list(self) -> Tuple[List[Tuple[int]], List[int]]:
@@ -84,7 +90,9 @@ class Node:
 def build_valid_solution(pcstp: PCSTP, debug:bool = False) -> Node:
     """ From a PCSTP, build a valid tree and return the connection list and the tree """
     # Connect everything
-    root_id = random.choice(pcstp.network.nodes)['index']
+    print(f"Number of node: {len(pcstp.network.nodes)}")
+    root_dict = random.choice(pcstp.network.nodes) #! Bug here, choice try to access index 0 ?
+    root_id = root_dict['index']
     nodes_in_tree = {root_id}
     # Create the tree
     root_node = Node(root_id)
