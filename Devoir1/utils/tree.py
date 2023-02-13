@@ -70,6 +70,20 @@ class Node:
         add_connection(self)
         return list(connections), nodes_id
 
+    @property
+    def depth_below(self):
+        """ Get depth max under this node """
+        def find_depth(node, depth):
+            depth += 1
+            max_depth = depth
+            for child in node.children:
+                d = find_depth(child, depth)
+                if d > max_depth:
+                    max_depth = d
+            return max_depth
+        
+        return find_depth(self, 0)
+
 
     def __str__(self) -> str:
         """ Pretty print the tree """

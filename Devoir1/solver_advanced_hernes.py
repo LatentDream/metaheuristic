@@ -28,7 +28,7 @@ def solve(pcstp: PCSTP, seed=0) -> List[Tuple[int]]:
     node  = build_valid_solution(pcstp, True) 
 
     ##? Init param for nb of local search before a break check
-    nb_try_in_batch = len(pcstp.network.nodes) * 4
+    nb_try_in_batch = len(pcstp.network.nodes)**2
     changed_in_batch = False
     nb_batch_done = 1
     nb_try = 0
@@ -40,7 +40,8 @@ def solve(pcstp: PCSTP, seed=0) -> List[Tuple[int]]:
         node, change_made = find_better_local_solution(node, pcstp)
         changed_in_batch |= change_made
         nb_try += 1
-        print(f"{nb_try}/{nb_try_in_batch} - {changed_in_batch} - {pcstp.get_solution_cost(node.get_connection_list()[0])}")
+        if nb_try % 1000 == 0: 
+            print(f"{nb_try}/{nb_try_in_batch} - {changed_in_batch} - {pcstp.get_solution_cost(node.get_connection_list()[0])}")
         
         ##? Check if better when batch ended
         if nb_try >= nb_try_in_batch:
@@ -49,7 +50,7 @@ def solve(pcstp: PCSTP, seed=0) -> List[Tuple[int]]:
                 break
             ##? Reduce batch size  
             else:
-                nb_try_in_batch = len(pcstp.network.nodes) - nb_batch_done
+                nb_try_in_batch = len(pcstp.network.nodes)**2 // nb_batch_done
                 changed_in_batch = False
                 nb_batch_done += 1
                 nb_try = 0
@@ -85,7 +86,7 @@ def find_better_local_solution(node: Node, pcstp: PCSTP) -> Tuple[Node, bool]:
             #? Check if the solution is better -> Keep or delete node
             new_connections, new_nodes_id = node.get_connection_list()
             new_score = pcstp.get_solution_cost(new_connections)
-            if  new_score < current_score or random.random() > 0.5: # Todo: stochasticity ?
+            if  new_score < current_score or random.random() > 0.99: # Todo: stochasticity ?
                 change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
                 # print(f"Adding...")
             else:
@@ -107,7 +108,7 @@ def find_better_local_solution(node: Node, pcstp: PCSTP) -> Tuple[Node, bool]:
                 new_connections, new_nodes_id = root.get_connection_list()
                 new_score = pcstp.get_solution_cost(new_connections)
                 #! Too easy to remove node: Add a limitation on the branch of the branch the algo can chop chop
-                if new_score < current_score :
+                if new_score < current_score and old_child.depth_below < 3:
                     change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
                     # print(f"Removing...")
 
