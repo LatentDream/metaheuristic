@@ -86,7 +86,7 @@ def find_better_local_solution(node: Node, pcstp: PCSTP) -> Tuple[Node, bool]:
             #? Check if the solution is better -> Keep or delete node
             new_connections, new_nodes_id = node.get_connection_list()
             new_score = pcstp.get_solution_cost(new_connections)
-            if  new_score < current_score or random.random() > 0.99: # Todo: stochasticity ?
+            if  new_score < current_score or random.random() > 0.999: # Todo: stochasticity ?
                 change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
                 # print(f"Adding...")
             else:
@@ -101,19 +101,24 @@ def find_better_local_solution(node: Node, pcstp: PCSTP) -> Tuple[Node, bool]:
                     old_child = child
                     break
             
-            #? If node is attached to the current root -> Remove it, otherwise we can't do anayting
+            #? If node is attached to the current root -> Remove it
             if old_child is not None:
                 root.children.remove(old_child)
                 #? Check if the solution is better -> chop chop the tree or put the node back
                 new_connections, new_nodes_id = root.get_connection_list()
                 new_score = pcstp.get_solution_cost(new_connections)
                 #! Too easy to remove node: Add a limitation on the branch of the branch the algo can chop chop
-                if new_score < current_score and old_child.depth_below < 3:
+                #! Maybe go down de tree ?
+                if new_score < current_score and old_child.depth_below < 5:
                     change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
                     # print(f"Removing...")
 
                 else:
                     root.children.add(old_child)
+
+            #? If the node is attached to another node
+            # Todo: Find de node and attach it to this node
+
 
 
     return root, change_made
