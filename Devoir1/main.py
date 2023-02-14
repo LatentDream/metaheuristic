@@ -45,8 +45,6 @@ if __name__ == '__main__':
     if args.agent == "naive":
         # assign a different time slot for each course
         solution = solver_naive.solve(pcstp)
-    elif args.agent == "atlas":
-        solution = solver_advanced_atlas.solve(pcstp)
     elif args.agent == "hernes":
         solution = solver_advanced_hernes.solve(pcstp)
     elif args.agent == "advanced":
