@@ -88,38 +88,41 @@ def find_better_local_solution(node: Node, pcstp: PCSTP) -> Tuple[Node, bool]:
             new_score = pcstp.get_solution_cost(new_connections)
             if  new_score < current_score or random.random() > 0.999: # Todo: stochasticity ?
                 change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
-                # print(f"Adding...")
+                # print(f"Adding {adj_node_id} ...")
             else:
                 root.children.remove(new_child)
 
         #? Case: Delete a node already in the tree -> Chop chop a branch
         else:
             #? Find the node in the children
-            old_child = None
-            for child in root.children:
-                if child.id == adj_node_id:
-                    old_child = child
-                    break
+            adj_node = root.get_node(adj_node_id)
             
             #? If node is attached to the current root -> Remove it
-            if old_child is not None:
-                root.children.remove(old_child)
+            if adj_node in root.children:
+                root.children.remove(adj_node)
                 #? Check if the solution is better -> chop chop the tree or put the node back
                 new_connections, new_nodes_id = root.get_connection_list()
                 new_score = pcstp.get_solution_cost(new_connections)
                 #! Too easy to remove node: Add a limitation on the branch of the branch the algo can chop chop
-                #! Maybe go down de tree ?
-                if new_score < current_score and old_child.depth_below < 5:
+                if new_score < current_score and adj_node.depth_below < 5:
                     change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
-                    # print(f"Removing...")
-
+                    # print(f"Removing {adj_node_id} ...")
                 else:
-                    root.children.add(old_child)
+                    root.children.add(adj_node)
 
             #? If the node is attached to another node
-            # Todo: Find de node and attach it to this node
-
-
+            else:
+                old_parent = adj_node.detach_from_parent()
+                root.add_child(adj_node)
+                #? Check if the solution is better
+                new_connections, new_nodes_id = root.get_connection_list()
+                new_score = pcstp.get_solution_cost(new_connections)
+                if new_score < current_score:
+                    change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
+                    # print(f"Changing child parent for {adj_node_id} ...")
+                else:
+                    adj_node.detach_from_parent()
+                    old_parent.add_child(adj_node)
 
     return root, change_made
 

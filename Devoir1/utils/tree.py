@@ -12,7 +12,6 @@ class Node:
         if parent != None: self.parent.children.add(self)
 
     def get_node(self, node_id):
-        self.root()
         def find(node, node_id):
             if node.id == node_id:
                 return node
@@ -21,7 +20,26 @@ class Node:
                 if found_node != None:
                     return found_node
 
-        return find(self, node_id)
+        # Find the root: 
+        root = self
+        while root.parent != None:
+            root = root.parent
+
+        return find(root, node_id)
+
+    def detach_from_parent(self):
+        if self.parent == None:
+            return
+        old_parent = self.parent
+        old_parent.children.remove(self)
+        self.parent = None
+        return old_parent
+
+    def add_child(self, child):
+        self.children.add(child)
+        old_parent = child.detach_from_parent()
+        child.parent = self
+        return old_parent
 
     def root(self):
         """ Convert this node as the root """
@@ -45,7 +63,6 @@ class Node:
         convert(parent, self)
 
         return self
-
  
     def get_connection_list(self) -> Tuple[List[Tuple[int]], List[int]]:
         node = self
