@@ -25,7 +25,10 @@ def solve(pcstp: PCSTP, seed=0) -> List[Tuple[int]]:
 
     ######! Local search heuristique
     ##? Starting with a arbitrary VALID solution
-    node  = build_valid_solution(pcstp, True) 
+    node  = build_valid_solution(pcstp) 
+    connections, _ = node.get_connection_list()
+    current_score = pcstp.get_solution_cost(connections)
+    print(f"Starting from: {current_score}")
 
     ##? Init param for nb of local search before a break check
     nb_try_in_batch = len(pcstp.network.nodes)**2
@@ -62,7 +65,7 @@ def solve(pcstp: PCSTP, seed=0) -> List[Tuple[int]]:
 
 
 def find_better_local_solution(node: Node, pcstp: PCSTP) -> Tuple[Node, bool]:
-    """ Try to find a better solution in a neighborhood 
+    """ Try to find a better solution in a random neighborhood 
     return: 
         @Node: node from a tree with the choosing solution
         @bool: True if it's a better solution
@@ -73,6 +76,50 @@ def find_better_local_solution(node: Node, pcstp: PCSTP) -> Tuple[Node, bool]:
 
     #? Rebuild a representation of the tree with `node_id` as the root
     root = node.get_node(node_id).root()
+
+    # heuristic = random.choice([inner_node_heuristic, terminal_node_heuristic])
+    heuristic = inner_node_heuristic
+
+    return heuristic(root, pcstp)
+
+
+def terminal_node_heuristic(node: Node, pcstp: PCSTP):
+    """ Try to find a better solution in a neighborhood in at the bottom of the tree
+    return: 
+        @Node: node from a tree to execute the heuristic in
+        @bool: True if it's a better solution
+    """
+    #? Find a terminal node: 
+    while len(node.children) > 0:
+        # choose a random children
+        children_id = [child.id for child in node.children]
+        node_id = random.choice(children_id)
+        for child in node.children:
+            if child.id == node_id:
+                node = child
+                break
+
+    #? Remove the terminal node if it's worth it
+    connections, _ = node.get_connection_list()
+    current_score = pcstp.get_solution_cost(connections)
+    old_parent = node.detach_from_parent()
+    new_connections, _ = old_parent.get_connection_list()
+    new_score = pcstp.get_solution_cost(new_connections)
+    if  new_score < current_score or random.random() > 0.999: #* stochasticity ?
+        return old_parent, True
+    else:
+        old_parent.add_child(node)
+        return old_parent, False
+
+
+
+def inner_node_heuristic(root: Node, pcstp: PCSTP)  -> Tuple[Node, bool]:
+    """ Try to find a better solution in a neighborhood in the middle of the tree
+    return: 
+        @Node: node from a tree to execute the heuristic in
+        @bool: True if it's a better solution
+    """
+    connections, nodes_id = root.get_connection_list()
     current_score = pcstp.get_solution_cost(connections)
     change_made = False
 
@@ -84,9 +131,9 @@ def find_better_local_solution(node: Node, pcstp: PCSTP) -> Tuple[Node, bool]:
             #? Add the new node
             new_child = Node(adj_node_id, root)
             #? Check if the solution is better -> Keep or delete node
-            new_connections, new_nodes_id = node.get_connection_list()
+            new_connections, new_nodes_id = root.get_connection_list()
             new_score = pcstp.get_solution_cost(new_connections)
-            if  new_score < current_score or random.random() > 0.999: # Todo: stochasticity ?
+            if  new_score < current_score or random.random() > 0.999: #* stochasticity ?
                 change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
                 # print(f"Adding {adj_node_id} ...")
             else:
@@ -125,4 +172,3 @@ def find_better_local_solution(node: Node, pcstp: PCSTP) -> Tuple[Node, bool]:
                     old_parent.add_child(adj_node)
 
     return root, change_made
-
