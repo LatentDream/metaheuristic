@@ -6,7 +6,6 @@
 import argparse
 import solver_naive
 import solver_advanced
-import solver_advanced_atlas
 import solver_advanced_hernes
 import time
 from network import PCSTP
@@ -16,16 +15,15 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Instances parameters
-    parser.add_argument('--agent', type=str, default='naive')
-    parser.add_argument('--infile', type=str,
-                        default='instances/reseau_A_8_11_5.txt')
-    parser.add_argument('--outfile', type=str, default='solution')
-    parser.add_argument('--visualisation_file', type=str, default='visualization')
+    parser.add_argument("--agent", type=str, default="naive")
+    parser.add_argument("--infile", type=str, default="instances/reseau_A_8_11_5.txt")
+    parser.add_argument("--outfile", type=str, default="solution")
+    parser.add_argument("--visualisation_file", type=str, default="visualization")
 
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parse_arguments()
     pcstp = PCSTP(args.infile)
 
@@ -53,13 +51,16 @@ if __name__ == '__main__':
     else:
         raise Exception("This agent does not exist")
 
-    solving_time = round((time.time() - start_time) / 60,2)
+    solving_time = round((time.time() - start_time) / 60, 2)
 
     pcstp.display_solution(solution, args.visualisation_file)
     pcstp.save_solution(solution, args.outfile)
     print("***********************************************************")
     print("[INFO] Solution obtained")
     print("[INFO] Execution time : %s minutes" % solving_time)
-    print("[INFO] Penality obtained (value to minimize) : %s" % pcstp.get_solution_cost(solution))
+    print(
+        "[INFO] Penality obtained (value to minimize) : %s"
+        % pcstp.get_solution_cost(solution)
+    )
     print("[INFO] Sanity check passed : %s" % pcstp.verify_solution(solution))
     print("***********************************************************")
