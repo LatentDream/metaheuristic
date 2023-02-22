@@ -169,7 +169,7 @@ def neighborhood_heuristic(root: Node, pcstp: PCSTP)  -> Tuple[Node, bool, List[
 
         #? Case: Try to add a node if it's not already in the tree
         if adj_node_id not in nodes_id:
-            new_child = Node(adj_node_id, root)
+            new_child = Node(adj_node_id, parent=root)
             new_connections, new_nodes_id = root.get_connection_list()
             new_score = pcstp.get_solution_cost(new_connections)
             if  new_score < current_score or random.random() > 0.975: #* stochasticity
