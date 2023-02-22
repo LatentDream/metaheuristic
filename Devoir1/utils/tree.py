@@ -101,6 +101,19 @@ class Node:
         
         return find_depth(self, 0)
 
+    def copy(self):
+        self.root
+        root_copy = Node(self.id)
+        
+        def copy_child(node, node_copy):
+            for child in node.children:
+                child_copy = Node(child.id)
+                copy_child(child, child_copy)
+                node_copy.children.add(child_copy)
+
+        copy_child(self, root_copy)
+
+        return root_copy
 
     def __str__(self) -> str:
         """ Pretty print the tree """
@@ -118,8 +131,8 @@ class Node:
 
 
 
-def build_valid_solution(pcstp: PCSTP, debug:bool = False) -> Node:
-    """ From a PCSTP, build a valid tree and return the connection list and the tree """
+def build_valid_solution(pcstp: PCSTP, temperature=0.0, debug:bool = False) -> Node:
+    """ From a PCSTP, build a full valid tree and return the connection list and the tree """
     # Connect everything
     print(f"Number of node: {len(pcstp.network.nodes)}")
     root_dict = random.choice(pcstp.network.nodes) #! Bug here, choice try to access index 0 ?
@@ -130,7 +143,7 @@ def build_valid_solution(pcstp: PCSTP, debug:bool = False) -> Node:
 
     def build_tree(id, parent_node):
         for adj_node in pcstp.network.adj[id]:
-            if adj_node not in nodes_in_tree:
+            if adj_node not in nodes_in_tree and random.random() > temperature:
                 if debug: print(f"Adding: {id} -> {adj_node}")
                 child = Node(adj_node, parent_node)
                 nodes_in_tree.add(adj_node)
