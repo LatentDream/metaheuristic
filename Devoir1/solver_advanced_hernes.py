@@ -16,7 +16,7 @@ def solve(pcstp):
     return solve_with_restart(pcstp)
 
 def solve_with_restart(pcstp):
-    n_restart = 10
+    n_restart = 40
     best_sol = None
     best_score = inf
 
@@ -139,7 +139,7 @@ def terminal_node_heuristic(node: Node, pcstp: PCSTP):
     old_parent = node.detach_from_parent()
     new_connections, _ = old_parent.get_connection_list()
     new_score = pcstp.get_solution_cost(new_connections)
-    if  new_score < current_score or random.random() > 0.999: #* stochasticity ?
+    if  new_score < current_score or random.random() > 0.99: #* stochasticity ?
         return old_parent, True
     else:
         old_parent.add_child(node)
@@ -178,7 +178,7 @@ def neighborhood_heuristic(root: Node, pcstp: PCSTP)  -> Tuple[Node, bool, List[
             new_child = Node(adj_node_id, root)
             new_connections, new_nodes_id = root.get_connection_list()
             new_score = pcstp.get_solution_cost(new_connections)
-            if  new_score < current_score or random.random() > 0.97: #* stochasticity ?
+            if  new_score < current_score or random.random() > 0.975: #* stochasticity ?
                 change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
                 neighborhood.append(new_child)
             else:
