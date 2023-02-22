@@ -6,10 +6,13 @@ from typing import List, Tuple
 from network import PCSTP
 import random
 from utils.tree import build_valid_solution, Node
+from utils.time_limiter import time_limit, TimeoutException
 from math import inf
 
+TIME_LIMIT = 19*60
+
 def solve(pcstp):
-    # return solver(pcstp)
+
     return solve_with_restart(pcstp)
 
 def solve_with_restart(pcstp):
@@ -17,19 +20,29 @@ def solve_with_restart(pcstp):
     best_sol = None
     best_score = inf
 
-    for i in range(n_restart):
-        print(f"Restart {i+1}/{n_restart} ---------- ")
-        temperature = 0.0 + i/(n_restart*2) 
-        try:
-            sol = solver(pcstp, temperature)
-        except KeyError as e:
-            print(f"Random.choice Indexation error in build initial solution for {i+1}")
-            continue
-        sol_score = pcstp.get_solution_cost(sol)
-        print(f"Socre: {sol_score}")
-        if sol_score < best_score:
-            best_score = sol_score
-            best_sol = sol
+    try: 
+        with time_limit(TIME_LIMIT):
+            for i in range(n_restart):
+                print(f"Restart {i+1}/{n_restart} ---------- ")
+                temperature = 0.0 + i/(n_restart*2) 
+                try:
+                    sol, stopped = solver(pcstp, temperature)
+                    sol_score = pcstp.get_solution_cost(sol)
+                    print(f"Socre: {sol_score}")
+                    if sol_score < best_score:
+                        best_score = sol_score
+                        best_sol = sol
+                    if stopped:
+                        raise stopped
+                except KeyError as e:
+                    print(f"Random.choice Indexation error in build initial solution for {i+1}")
+                    continue
+
+    except TimeoutException as e:
+        print("Reason: Out of time.")
+    except KeyboardInterrupt as e:
+        print("Interruption requested by user.")
+
 
     return best_sol
 
@@ -56,6 +69,8 @@ def solver(pcstp: PCSTP, temperature: float=0.0) -> List[Tuple[int]]:
     solution_changed_in_batch = False
     nb_batch_done = 1
     nb_try = 0
+
+    stopped = None
 
     try:
     ##? As long as there is a solution in the neighborhoods
@@ -85,12 +100,13 @@ def solver(pcstp: PCSTP, temperature: float=0.0) -> List[Tuple[int]]:
                     nb_batch_done += 1
                     nb_try = 0
     
-    except KeyboardInterrupt as e:
-        print(f" ~ Stopping execution and returning best solution seen ...")
+    except (KeyboardInterrupt, TimeoutException) as e:
+        print(f"\nStopping execution and returning best solution seen ...") 
+        stopped = e
 
     ##? Retourner s_i
     connections, nodes_id = best_solution_found.get_connection_list()
-    return connections
+    return connections, stopped
     
 
 
@@ -103,7 +119,7 @@ def find_better_local_solution(node: Node, pcstp: PCSTP) -> Tuple[Node, bool]:
     connections, nodes_id = node.get_connection_list()
     node_id = random.choice(nodes_id)
     root = node.get_node(node_id).root()
-    heuristic = random.choice([large_neighborhood_heuristic, large_neighborhood_heuristic, terminal_node_heuristic])
+    heuristic = random.choice([small_neighborhood_heuristic, large_neighborhood_heuristic, terminal_node_heuristic])
 
     return heuristic(root, pcstp)
 
@@ -131,15 +147,20 @@ def terminal_node_heuristic(node: Node, pcstp: PCSTP):
 
 
 def large_neighborhood_heuristic(root: Node, pcstp: PCSTP)  -> Tuple[Node, bool]:
-    node, change_made, neighborhood = small_neighborhood_heuristic(root, pcstp)
+    node, change_made, neighborhood = neighborhood_heuristic(root, pcstp)
     for node in neighborhood:
         _, nodes_id = node.get_connection_list()
         if node.id in nodes_id:
-            node, _, _ = small_neighborhood_heuristic(node.root(), pcstp)
+            node, _, _ = neighborhood_heuristic(node.root(), pcstp)
     return node, change_made
 
 
-def small_neighborhood_heuristic(root: Node, pcstp: PCSTP)  -> Tuple[Node, bool, List[Node]]:
+def small_neighborhood_heuristic(root: Node, pcstp: PCSTP)  -> Tuple[Node, bool]:
+    node, change_made, _ = neighborhood_heuristic(root, pcstp)
+    return node, change_made
+
+
+def neighborhood_heuristic(root: Node, pcstp: PCSTP)  -> Tuple[Node, bool, List[Node]]:
     """ Try to find a better solution in a neighborhood in the middle of the tree
     return: 
         @Node: node from a tree to execute the heuristic in
