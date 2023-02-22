@@ -13,10 +13,9 @@ TIME_LIMIT = 19*60
 
 def solve(pcstp):
 
-    return solve_with_restart(pcstp)
+    return solve_with_restart(pcstp, 20)
 
-def solve_with_restart(pcstp):
-    n_restart = 40
+def solve_with_restart(pcstp, n_restart):
     best_sol = None
     best_score = inf
 
@@ -24,9 +23,8 @@ def solve_with_restart(pcstp):
         with time_limit(TIME_LIMIT):
             for i in range(n_restart):
                 print(f"Restart {i+1}/{n_restart} ---------- ")
-                temperature = 0.0 + i/(n_restart*2) 
                 try:
-                    sol, stopped = solver(pcstp, temperature)
+                    sol, stopped = solver(pcstp)
                     sol_score = pcstp.get_solution_cost(sol)
                     print(f"Socre: {sol_score}")
                     if sol_score < best_score:
@@ -37,17 +35,15 @@ def solve_with_restart(pcstp):
                 except KeyError as e:
                     print(f"Random.choice Indexation error in build initial solution for {i+1}")
                     continue
-
     except TimeoutException as e:
         print("Reason: Out of time.")
     except KeyboardInterrupt as e:
         print("Interruption requested by user.")
 
-
     return best_sol
 
 
-def solver(pcstp: PCSTP, temperature: float=0.0) -> List[Tuple[int]]:
+def solver(pcstp: PCSTP) -> List[Tuple[int]]:
     """Advanced solver for the prize-collecting Steiner tree problem.
 
     Args:
@@ -59,7 +55,7 @@ def solver(pcstp: PCSTP, temperature: float=0.0) -> List[Tuple[int]]:
             would be a solution where edges (1, 2), (3, 4) and (5, 6) are included and all other edges of the graph 
             are excluded
     """
-    ######! Local search heuristique
+    ##! Local search heuristique
     node  = build_valid_solution(pcstp, 0.5)
     connections, _ = node.get_connection_list()
     current_score = pcstp.get_solution_cost(connections)
@@ -73,21 +69,17 @@ def solver(pcstp: PCSTP, temperature: float=0.0) -> List[Tuple[int]]:
     stopped = None
 
     try:
-    ##? As long as there is a solution in the neighborhoods
-    # TODO: Add time limiter
         while True:
-            ##? Change the solution locally
+
             node, change_made = find_better_local_solution(node, pcstp)
             solution_changed_in_batch |= change_made
             nb_try += 1
             current_score = pcstp.get_solution_cost(node.get_connection_list()[0])
             
-            #* Save best solution
             if current_score < best_score:
                 best_solution_found, best_score = node.copy(), current_score
             if nb_try % 1000 == 0: 
                 print(f"{nb_try}/{nb_try_in_batch} - {solution_changed_in_batch} - {current_score}")
-            # TODO: Add pertubation every 1000 step ? 
             
             if nb_try >= nb_try_in_batch:
                 if not solution_changed_in_batch:
@@ -104,7 +96,6 @@ def solver(pcstp: PCSTP, temperature: float=0.0) -> List[Tuple[int]]:
         print(f"\nStopping execution and returning best solution seen ...") 
         stopped = e
 
-    ##? Retourner s_i
     connections, nodes_id = best_solution_found.get_connection_list()
     return connections, stopped
     
@@ -133,13 +124,16 @@ def terminal_node_heuristic(node: Node, pcstp: PCSTP):
     
     node = node.get_random_terminal_node()
 
+    if node.parent == None:
+        return node, False
+
     #? Remove the terminal node if it's worth it
     connections, _ = node.get_connection_list()
     current_score = pcstp.get_solution_cost(connections)
     old_parent = node.detach_from_parent()
     new_connections, _ = old_parent.get_connection_list()
     new_score = pcstp.get_solution_cost(new_connections)
-    if  new_score < current_score or random.random() > 0.99: #* stochasticity ?
+    if  new_score < current_score or random.random() > 0.99: #* stochasticity
         return old_parent, True
     else:
         old_parent.add_child(node)
@@ -178,7 +172,7 @@ def neighborhood_heuristic(root: Node, pcstp: PCSTP)  -> Tuple[Node, bool, List[
             new_child = Node(adj_node_id, root)
             new_connections, new_nodes_id = root.get_connection_list()
             new_score = pcstp.get_solution_cost(new_connections)
-            if  new_score < current_score or random.random() > 0.975: #* stochasticity ?
+            if  new_score < current_score or random.random() > 0.975: #* stochasticity
                 change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
                 neighborhood.append(new_child)
             else:
