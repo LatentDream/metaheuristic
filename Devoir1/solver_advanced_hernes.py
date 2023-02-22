@@ -199,11 +199,10 @@ def neighborhood_heuristic(root: Node, pcstp: PCSTP)  -> Tuple[Node, bool, List[
                 new_score = pcstp.get_solution_cost(new_connections)
                 if new_score < current_score:
                     change_made, connections, nodes_id, current_score = True, new_connections, new_nodes_id, new_score
-                    neighborhood.append(adj_node)
                 else:
                     adj_node.detach_from_parent()
                     old_parent.add_child(adj_node)
-                    neighborhood.append(adj_node)
+                neighborhood.append(adj_node)
 
 
     return root, change_made, neighborhood
