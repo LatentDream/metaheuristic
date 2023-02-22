@@ -101,6 +101,16 @@ class Node:
         
         return find_depth(self, 0)
 
+    def get_random_terminal_node(self):
+        node = self
+        while len(node.children) > 0:
+            node_id = random.choice([child.id for child in node.children])
+            for child in node.children:
+                if child.id == node_id:
+                    node = child
+                    break
+        return node
+
     def copy(self):
         self.root
         root_copy = Node(self.id)

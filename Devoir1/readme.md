@@ -6,12 +6,16 @@ Minimize construction costs and penalties associated with the exclusion of certa
 
 - Implementation of a local search with a mechanism to extract local minimums
 
-## Data
+## Run the porject
 
-N: Number of potential customers
-E: number of potential connections
+`
+# Start a env
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
-Line starting with E: potential connections and their cost
-Line starting with T: end nodes and their associated costs
+# Run problem
+python3 main.py --agent=hernes --infile=instances/reseau_A_8_11_5.txt
+python3 main.py --agent=advanced --infile=instances/reseau_A_8_11_5.txt
 
-Translated with www.DeepL.com/Translator (free version)
+`
