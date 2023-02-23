@@ -6,7 +6,7 @@ Minimize construction costs and penalties associated with the exclusion of certa
 
 - Implementation of a local search with a mechanism to extract local minimums
 
-## Run the porject
+## Run the project
 
 → Start a env
 ```
