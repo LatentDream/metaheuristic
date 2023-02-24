@@ -16,6 +16,5 @@ pip install -r requirements.txt
 ```
 → Run problem
 ```
-python3 main.py --agent=hernes --infile=instances/reseau_B_64_192_64.txt
 python3 main.py --agent=advanced --infile=instances/reseau_B_64_192_64.txt
 ```

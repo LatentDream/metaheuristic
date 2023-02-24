@@ -3,7 +3,10 @@
 import signal
 from contextlib import contextmanager
 
-class TimeoutException(Exception): pass
+
+class TimeoutException(Exception):
+    pass
+
 
 @contextmanager
 def time_limit(seconds):
