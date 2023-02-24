@@ -10,7 +10,7 @@ from math import inf
 import signal
 
 
-TIME_LIMIT = 30
+TIME_LIMIT = 15
 class TimeoutException(Exception): pass
 def handler(sig, frame):
     raise TimeoutException
@@ -23,7 +23,6 @@ def solve_with_restart(pcstp, n_restart):
     best_sol = None
     best_score = inf
 
-
     signal.signal(signal.SIGALRM, handler)  # register interest in SIGALRM events
     signal.alarm(TIME_LIMIT)  # timeout in 2 seconds
     try: 
@@ -35,6 +34,7 @@ def solve_with_restart(pcstp, n_restart):
                 print(f"Socre: {sol_score}")
                 if sol_score < best_score:
                     best_score = sol_score
+                    print(sol)
                     best_sol = sol
                 if stopped:
                     raise stopped
