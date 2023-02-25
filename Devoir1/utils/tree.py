@@ -49,14 +49,14 @@ class Node:
         def convert(node, child_that_became_parent):
             parent = node.parent
             # Remove new parent from node child
-            node.children.remove(child_that_became_parent)
+            if child_that_became_parent in node.children:
+                node.children.remove(child_that_became_parent)
             # Add new parent
             node.parent = child_that_became_parent
             # Go update node higher in the tree
             if parent:
                 node.children.add(parent)
                 convert(parent, node)
-        
         parent = self.parent
         self.children.add(parent)
         self.parent = None
@@ -145,7 +145,7 @@ def build_valid_solution(pcstp: PCSTP, temperature=0.0, debug:bool = False) -> N
     """ From a PCSTP, build a full valid tree and return the connection list and the tree """
     # Connect everything
     print(f"Number of node: {len(pcstp.network.nodes)}")
-    root_dict = random.choice(pcstp.network.nodes) #! Bug here, choice try to access index 0 ?
+    root_dict = random.choice(pcstp.network.nodes)
     root_id = root_dict['index']
     nodes_in_tree = {root_id}
     # Create the tree
@@ -159,7 +159,7 @@ def build_valid_solution(pcstp: PCSTP, temperature=0.0, debug:bool = False) -> N
                 child = Node(adj_node, parent_node)
                 nodes_in_tree.add(adj_node)
                 build_tree(adj_node, child)
-            if i > 2:
+            if i > 10: # Limit since building initial solution is exponential
                 break
             i += 1
 

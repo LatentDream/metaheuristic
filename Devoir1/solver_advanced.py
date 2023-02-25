@@ -17,7 +17,7 @@ def handler(sig, frame):
 
 def solve(pcstp):
 
-    return solve_with_restart(pcstp, 20)
+    return solve_with_restart(pcstp, 1)
 
 def solve_with_restart(pcstp, n_restart):
     best_sol = None
@@ -38,7 +38,7 @@ def solve_with_restart(pcstp, n_restart):
                 if stopped:
                     raise stopped
             except KeyError as e:
-                print(f"Random.choice Indexation error in build initial solution for {i+1}")
+                print(f"Random.choice Indexation error in build initial solution for {i+1}, restarting ...")
                 continue
     except TimeoutException as e:
         print("Reason: Out of time.")
@@ -73,6 +73,8 @@ def solver(pcstp: PCSTP, starting_time: float) -> List[Tuple[int]]:
 
     stopped = None
 
+    print(f"\n\n{nb_try}/{nb_try_in_batch} - {solution_changed_in_batch} - {current_score}")
+    print("STARTING LOCAL SEARCH \n")
     try:
         while True:
 
@@ -185,6 +187,7 @@ def neighborhood_heuristic(root: Node, pcstp: PCSTP)  -> Tuple[Node, bool, List[
                 neighborhood.append(new_child)
             else:
                 root.children.remove(new_child)
+                new_child.parent = None
         else:
             #? Find the node in the children
             adj_node = root.get_node(adj_node_id)
