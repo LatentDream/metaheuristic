@@ -152,12 +152,16 @@ def build_valid_solution(pcstp: PCSTP, temperature=0.0, debug:bool = False) -> N
     root_node = Node(root_id)
 
     def build_tree(id, parent_node):
+        i = 0
         for adj_node in pcstp.network.adj[id]:
             if adj_node not in nodes_in_tree and random.random() > temperature:
                 if debug: print(f"Adding: {id} -> {adj_node}")
                 child = Node(adj_node, parent_node)
                 nodes_in_tree.add(adj_node)
                 build_tree(adj_node, child)
+            if i > 2:
+                break
+            i += 1
 
     build_tree(root_id, root_node)
 

@@ -8,9 +8,9 @@ import random
 from utils.tree import build_valid_solution, Node
 from math import inf
 import signal
+import time
 
-
-TIME_LIMIT = 15
+TIME_LIMIT = 30 * 60
 class TimeoutException(Exception): pass
 def handler(sig, frame):
     raise TimeoutException
@@ -22,14 +22,13 @@ def solve(pcstp):
 def solve_with_restart(pcstp, n_restart):
     best_sol = None
     best_score = inf
-
-    signal.signal(signal.SIGALRM, handler)  # register interest in SIGALRM events
-    signal.alarm(TIME_LIMIT)  # timeout in 2 seconds
+  
+    starting_time = time.time()
     try: 
         for i in range(n_restart):
             print(f"Restart {i+1}/{n_restart} ---------- ")
             try:
-                sol, stopped = solver(pcstp)
+                sol, stopped = solver(pcstp, starting_time)
                 sol_score = pcstp.get_solution_cost(sol)
                 print(f"Socre: {sol_score}")
                 if sol_score < best_score:
@@ -49,7 +48,7 @@ def solve_with_restart(pcstp, n_restart):
     return best_sol
 
 
-def solver(pcstp: PCSTP) -> List[Tuple[int]]:
+def solver(pcstp: PCSTP, starting_time: float) -> List[Tuple[int]]:
     """Advanced solver for the prize-collecting Steiner tree problem.
 
     Args:
@@ -67,7 +66,7 @@ def solver(pcstp: PCSTP) -> List[Tuple[int]]:
     current_score = pcstp.get_solution_cost(connections)
     best_solution_found, best_score = node.copy(), current_score
 
-    nb_try_in_batch = len(pcstp.network.nodes)**2
+    nb_try_in_batch = min(len(pcstp.network.nodes)**2, 50000)
     solution_changed_in_batch = False
     nb_batch_done = 1
     nb_try = 0
@@ -97,6 +96,9 @@ def solver(pcstp: PCSTP) -> List[Tuple[int]]:
                     solution_changed_in_batch = False
                     nb_batch_done += 1
                     nb_try = 0
+
+            if time.time() - starting_time > TIME_LIMIT:
+                raise TimeoutException()
     
     except (KeyboardInterrupt, TimeoutException) as e:
         print(f"\nStopping execution and returning best solution seen ...") 
