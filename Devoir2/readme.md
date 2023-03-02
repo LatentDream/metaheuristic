@@ -27,6 +27,7 @@ k=0
 Note that a valid solution must 1. visit all patients one and only one time, and 2. respect the
 time window constraints.
 
+---
 → Start a env
 ```
 python -m venv venv
@@ -38,6 +39,9 @@ pip install -r requirements.txt
 python3 main.py --agent=naive --infile=instances/A_4.txt
 python3 main.py --agent=advanced --infile=instances/A_4.txt
 ```
+---
+Solution tested:
+1. Beam-ACO for the travelling salesman problem with time windows from Manuel Lopez-Ibanez and Christian Blum
 
-Best solution found for each instance:
-TODO: ADD
+Beam-ACO algorithms are hybrids between ant colony optimization and
+beam search. Ant colony optimization (ACO) is a metaheuristic that is based on the probabilistic construction of solutions. At each algorithm iteration, a number of solutions are constructed independently of each other. Beam-ACO employs instead at each iteration a probabilistic beam search procedure that constructs a number of solutions interdependently and in parallel. At each construction step, beam search keeps a certain number of the best partial solutions available for further extension. These partial solutions are selected with respect to bounding information. Hence, accurate and inexpensive bounding information is a crucial component of beam search. A problem arises when the bounding information is either misleading or when this information is computationally expensive, which is the case for the TSPTW. This work uses stochastic sampling as an alternative to bounding information. When using stochastic sampling, each partial solution is completed a certain number of times in a stochastic way. The information obtained by these stochastic samples is used to rank the different partial solutions. The worst partial solutions are then excluded from further examination. 
