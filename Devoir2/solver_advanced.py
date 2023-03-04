@@ -39,14 +39,14 @@ def solve(tsptw: TSPTW) -> List[int]:
     sample_rate = int((sample_percent * (tsptw.num_nodes - 1) / 100.0) + 0.5) + 1
 
     ant = Ant(tsptw, l_rate=l_rate, tau_max=tau_max, tau_min=tau_min)
-    pbs = ProbabilisticBeamSearch(ant, beam_width, max_children, to_choose, n_samples, sample_rate)
+    pbs = ProbabilisticBeamSearch(tsptw, ant, determinism_rate, beam_width, max_children, to_choose, n_samples, sample_rate)
 
     # To collec statistics
     best_solution = None
     results = list()
     violations = list()
     times_best_found = list()
-    iter_best_found = list()
+    iter_best_found = list() 
 
     # Solution
     best_so_far_solution = None

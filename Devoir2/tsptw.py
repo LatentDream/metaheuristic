@@ -1,7 +1,7 @@
 import networkx as nx
 from typing import List
 import matplotlib.pyplot as plt
-
+from math import inf
 
 class TSPTW():
     def __init__(self, filename: str):
@@ -14,6 +14,8 @@ class TSPTW():
             filename (str): path to the instance file
         """
         distances = {}
+        self.distance_min = inf
+        self.distance_max = -1
         self.time_windows = []
         with open(filename, "r") as f:
             lines = f.readlines()
@@ -24,7 +26,15 @@ class TSPTW():
                 if i == 0:
                     continue
                 elif i <= self.num_nodes:
-                    distances[i-1] = {j: {"weight": float(distance)} for j, distance in enumerate(line)}
+                    # distances[i-1] = {j: {"weight": float(distance)} for j, distance in enumerate(line)}
+                    # Modification to save max and min distance
+                    dist = {}
+                    for j, distance in enumerate(line):
+                        distance = float(distance)
+                        dist[j] = {"weight": distance}
+                        self.distance_max = max(self.distance_max, distance)
+                        self.distance_min = min(self.distance_min, distance)
+                    distances[i-1] = dist
                 else:
                     self.time_windows.append([int(k) for k in line])
             
