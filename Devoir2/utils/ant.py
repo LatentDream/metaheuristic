@@ -2,7 +2,6 @@ from tsptw import TSPTW
 import numpy as np
 
 
-
 class Ant: 
     """
     Modeled on the actions of an ant colony.[4] Artificial 'ants' (e.g. simulation agents) 
@@ -14,7 +13,7 @@ class Ant:
 
     def __init__(self, tsptw: TSPTW, l_rate:float=0.1, tau_max:float=0.999, tau_min:float=0.001):
         self.n = tsptw.num_nodes
-        self.pheromone = [[0.5] * self.n] * self.n
+        self.pheromone = np.array([np.array([0.5] * self.n)] * self.n)
         self.uniforme = np.random.uniform
         self.l_rate = l_rate
         self.tau_max = tau_max
@@ -22,7 +21,7 @@ class Ant:
 
 
     def resetUniformPheromoneValues(self):
-        self.pheromone = [[0.5] * self.n] * self.n
+        self.pheromone = np.array([np.array([0.5] * self.n)] * self.n)
 
 
     def updatePheromoneValues(self, bs_update, cf, p_ib, p_rb, p_bf):
@@ -61,18 +60,14 @@ class Ant:
         if cf <= 1.0:
             return 0.0, 1.0, 0.0
         raise ValueError("cf:({cf}) is greater than 1")
-
-
-    def stochastic_sampling(self, n_samples, determininsm_rate):
-        raise Exception(f"{self.stochastic_sampling.__name__} is not implemented")
-
-
-    def construction(self, determinism_rate):
-        raise Exception(f"{self.construction.__name__} is not implemented")
-
-
-    def beam_construct(self, determinism_rate, beam_with, max_children, to_choose, n_samples, sample_rate):
-        raise Exception(f"{self.beam_construct.__name__} is not implemented")
-
-
-
+    
+    
+    def computeConvergenceFactor(self):
+        # Equation #6
+        convergence_factor = 0.0
+        for i in range(self.n):
+            for j in range(self.n):
+                convergence_factor += max(self.tau_max - self.pheromone[i][j], self.pheromone[i][j] - self.tau_min)
+        convergence_factor = convergence_factor / self.n*self.n * (self.tau_max - self.tau_min)
+        convergence_factor = 2.0 * (convergence_factor -0.5)
+        return convergence_factor

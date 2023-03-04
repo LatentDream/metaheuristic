@@ -3,6 +3,7 @@ from tsptw import TSPTW
 import time
 from utils.ant import Ant
 from copy import deepcopy
+from utils.beam_search import ProbabilisticBeamSearch
 
 def solve(tsptw: TSPTW) -> List[int]:
     """Advanced solver for the prize-collecting Steiner tree problem.
@@ -38,6 +39,7 @@ def solve(tsptw: TSPTW) -> List[int]:
     sample_rate = int((sample_percent * (tsptw.num_nodes - 1) / 100.0) + 0.5) + 1
 
     ant = Ant(tsptw, l_rate=l_rate, tau_max=tau_max, tau_min=tau_min)
+    pbs = ProbabilisticBeamSearch(ant, beam_width, max_children, to_choose, n_samples, sample_rate)
 
     # To collec statistics
     best_solution = None
@@ -76,30 +78,24 @@ def solve(tsptw: TSPTW) -> List[int]:
             ### Probabilistic beam search algorithm is executed. This produces the iteration-best solution Pib
              #?  Probabilistic beam search: This part is the algo #1 of the paper
             for i in range(nb_of_ants):
-                params = [determinism_rate, beam_width, max_children, to_choose, n_samples, sample_rate]
-                iteration_best_solution = ant.beam_construct(*params) if beam_width > 1 else ant.construct(determinism_rate)
+                iteration_best_solution = pbs.beam_construct()
 
-
-            ### Then subject to the application of local search
-            while True and do_local_search:
-                new_solution = local_search(iteration_best_solution)
-                iteration_best_solution = get_best_soltion(new_solution, iteration_best_solution)
+                ### Then subject to the application of local search
+                while True and do_local_search:
+                    new_solution = local_search(iteration_best_solution)
+                    iteration_best_solution = get_best_soltion(new_solution, iteration_best_solution)
 
 
             ### Updating the best-so-far solution
             trial_tac = time.time()
-            if trial_nb == 0:
-                best_so_far_solution = deepcopy(iteration_best_solution)
-                restart_best_solution = deepcopy(iteration_best_solution)
-            elif restart:
+            if restart:
                 restart = False
                 restart_best_solution = None
                 best_so_far_solution = get_best_soltion(best_so_far_solution, iteration_best_solution)    
             else:
-                best_so_far_solution = get_best_soltion(iteration_best_solution, best_so_far_solution)
                 restart_best_solution = get_best_soltion(iteration_best_solution, restart_best_solution)
+                best_so_far_solution = get_best_soltion(best_so_far_solution, iteration_best_solution)
                 
-            
             best_soltion = get_best_soltion(best_solution, best_so_far_solution)
             
             # Stats
@@ -110,14 +106,14 @@ def solve(tsptw: TSPTW) -> List[int]:
 
 
             ### A new value for the convergence factor cf is computed
-            cf = computeConvergenceFactor(ant, tau_min, tau_max)
-            
+            cf = ant.computeConvergenceFactor()
+
 
             ### Depending on cf and bs_update, a decision on whether to restart the algorithm or not is made
             if bs_update and cf > 0.99:
+                ant.resetUniformPheromoneValues()
                 bs_update = False
                 restart = True
-                ant.resetUniformPheromoneValues()
             else:
                 if cf > 0.99:
                     bs_update = True
@@ -134,7 +130,7 @@ def get_best_soltion(solution1, solution2):
         return deepcopy(solution2)
     if solution2 == None:
         return deepcopy(solution1)
-    return deepcopy(solution1) if get_score(solution1) > get_score(solution2) else deepcopy(solution2)
+    return deepcopy(solution1) if get_score(solution1) < get_score(solution2) else deepcopy(solution2)
 
 
 def get_score(solution: List[int], tsptw: TSPTW):   
@@ -151,14 +147,3 @@ def local_search(solution: List[int], tsptw: TSPTW):
     # removed from the tour and reinserted in a different position
     raise Exception(f"{local_search.__name__} is not implemented")
 
-
-def computeConvergenceFactor(ant: Ant, tau_min: float, tau_max: float):
-    # Equation #6
-    convergence_factor = 0.0
-    n = ant.n
-    for i in range(n):
-        for j in range(n):
-            convergence_factor += max(tau_max - ant.pheromone[i][j], ant.pheromone[i][j] - tau_min)
-    convergence_factor = convergence_factor / n*n * (tau_max - tau_min)
-    convergence_factor = 2.0 * (convergence_factor -0.5)
-    return convergence_factor
