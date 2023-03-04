@@ -37,7 +37,7 @@ def solve(tsptw: TSPTW) -> List[int]:
     to_choose = int(beam_width * mu)
     sample_rate = int((sample_percent * (tsptw.num_nodes - 1) / 100.0) + 0.5) + 1
 
-    ant = Ant(tsptw)
+    ant = Ant(tsptw, l_rate=l_rate, tau_max=tau_max, tau_min=tau_min)
 
     # To collec statistics
     best_solution = None
@@ -83,8 +83,7 @@ def solve(tsptw: TSPTW) -> List[int]:
             ### Then subject to the application of local search
             while True and do_local_search:
                 new_solution = local_search(iteration_best_solution)
-                if get_score(new_solution) > get_score(iteration_best_solution):
-                    iteration_best_solution = new_solution
+                iteration_best_solution = get_best_soltion(new_solution, iteration_best_solution)
 
 
             ### Updating the best-so-far solution
@@ -95,15 +94,13 @@ def solve(tsptw: TSPTW) -> List[int]:
             elif restart:
                 restart = False
                 restart_best_solution = None
-                best_so_far_solution = best_soltions(best_so_far_solution, iteration_best_solution)    
+                best_so_far_solution = get_best_soltion(best_so_far_solution, iteration_best_solution)    
             else:
-                restart_best_solution = best_soltions(iteration_best_solution, restart_best_solution)
-                best_so_far_solution = best_soltions(iteration_best_solution, best_so_far_solution)
+                best_so_far_solution = get_best_soltion(iteration_best_solution, best_so_far_solution)
+                restart_best_solution = get_best_soltion(iteration_best_solution, restart_best_solution)
+                
             
-            if best_solution == None:
-                best_solution = best_so_far_solution
-            else:
-                best_soltion = best_soltions(best_solution, best_so_far_solution)
+            best_soltion = get_best_soltion(best_solution, best_so_far_solution)
             
             # Stats
             results.append(get_score(best_so_far_solution))
@@ -113,7 +110,7 @@ def solve(tsptw: TSPTW) -> List[int]:
 
 
             ### A new value for the convergence factor cf is computed
-            cf = computeConvergenceFactor()
+            cf = computeConvergenceFactor(ant, tau_min, tau_max)
             
 
             ### Depending on cf and bs_update, a decision on whether to restart the algorithm or not is made
@@ -124,21 +121,27 @@ def solve(tsptw: TSPTW) -> List[int]:
             else:
                 if cf > 0.99:
                     bs_update = True
-                ant.updatePheromoneValues(bs_update, cf)
+                ant.updatePheromoneValues(bs_update, cf, iteration_best_solution, restart_best_solution, best_so_far_solution)
             trial_tic = time.time()
     
     return best_soltion
 
 
-def best_soltions(soltion1, solution2):
-    return deepcopy(soltion1) if get_score(soltion1) > get_score(solution2) else deepcopy(solution2)
+def get_best_soltion(solution1, solution2):
+    if solution1 == None and solution2 == None:
+        return None
+    if solution1 == None:
+        return deepcopy(solution2)
+    if solution2 == None:
+        return deepcopy(solution1)
+    return deepcopy(solution1) if get_score(solution1) > get_score(solution2) else deepcopy(solution2)
 
 
 def get_score(solution: List[int], tsptw: TSPTW):   
     raise Exception(f"{get_score.__name__} is not implemented")
 
 
-def get_number_of_violations(solution: List[int], tsptw: TSPTW)
+def get_number_of_violations(solution: List[int], tsptw: TSPTW):
     raise Exception(f"{get_number_of_violations.__name__} is not implemented")
 
 
@@ -149,5 +152,13 @@ def local_search(solution: List[int], tsptw: TSPTW):
     raise Exception(f"{local_search.__name__} is not implemented")
 
 
-def computeConvergenceFactor():
-    raise Exception(f"{computeConvergenceFactor.__name__} is not implemented")
+def computeConvergenceFactor(ant: Ant, tau_min: float, tau_max: float):
+    # Equation #6
+    convergence_factor = 0.0
+    n = ant.n
+    for i in range(n):
+        for j in range(n):
+            convergence_factor += max(tau_max - ant.pheromone[i][j], ant.pheromone[i][j] - tau_min)
+    convergence_factor = convergence_factor / n*n * (tau_max - tau_min)
+    convergence_factor = 2.0 * (convergence_factor -0.5)
+    return convergence_factor
