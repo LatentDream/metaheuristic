@@ -2,6 +2,7 @@ from typing import List, Tuple
 from tsptw import TSPTW
 import time
 from utils.ant import Ant
+from copy import deepcopy
 
 def solve(tsptw: TSPTW) -> List[int]:
     """Advanced solver for the prize-collecting Steiner tree problem.
@@ -14,8 +15,7 @@ def solve(tsptw: TSPTW) -> List[int]:
             of the nodes. p1, ..., pn are all integers representing the id of the node. The solution starts and ends with 0
             as the tour starts from the depot
     """
-
-    ### 1. all variables are initialized. The pheromone values are set to their initial value 0.5
+    # Variables
     nb_of_iter = 100_000    # Stopping criteria 
     time_limit = 30*60      # Stopping criteria 
     nb_of_ants = 1          # n_of_ants: the number of ants
@@ -30,6 +30,7 @@ def solve(tsptw: TSPTW) -> List[int]:
     n_samples = 10          # stochastic sampling parameter
     sample_percent = 100    # stochastic sampling parameter
     sample_rate =  1        # stochastic sampling parameter
+    do_local_search = False # If the local search heuristic is executed
 
     trial_time = 30 * 60
     tic = time.time()
@@ -38,10 +39,10 @@ def solve(tsptw: TSPTW) -> List[int]:
 
     ant = Ant(tsptw)
 
-    # collecting statistics
+    # To collec statistics
     best_solution = None
     results = list()
-    viols = list()
+    violations = list()
     times_best_found = list()
     iter_best_found = list()
 
@@ -50,7 +51,7 @@ def solve(tsptw: TSPTW) -> List[int]:
     restart_best_solution = None
     iteration_best_solution = None
 
-    ### 2. For each trial
+    ### For each trial for a number of trial
     for trial_nb in range(nb_of_trials):
         #? Beam-ACO: algo #2 of the paper
         best_so_far_solution = None
@@ -62,7 +63,7 @@ def solve(tsptw: TSPTW) -> List[int]:
         time_init = 0.0
         solution_evaluation = 0
 
-        ### 3. The algorithm iterates a main loop until a maximum CPU time limit is reached
+        ### algorithm: iterates main loop until a maximum CPU time limit is reached
         trial_tic = time.time()
         time_init =  time.time()
         nb_iter_done = 0
@@ -71,35 +72,82 @@ def solve(tsptw: TSPTW) -> List[int]:
             avg_cost = 0.0
             avg_violation = 0.0
 
-            ### 4. A probabilistic beam search algorithm is executed. This produces the iteration-best solution Pib
+
+            ### Probabilistic beam search algorithm is executed. This produces the iteration-best solution Pib
              #?  Probabilistic beam search: This part is the algo #1 of the paper
             for i in range(nb_of_ants):
                 params = [determinism_rate, beam_width, max_children, to_choose, n_samples, sample_rate]
-                new_sol = ant.beam_construct(*params) if beam_width > 1 else ant.construct(determinism_rate)
-
-            ### 5. Then subject to the application of local search
-            # TODO
+                iteration_best_solution = ant.beam_construct(*params) if beam_width > 1 else ant.construct(determinism_rate)
 
 
-            ### 6. Updating the best-so-far solution
-            # TODO
+            ### Then subject to the application of local search
+            while True and do_local_search:
+                new_solution = local_search(iteration_best_solution)
+                if get_score(new_solution) > get_score(iteration_best_solution):
+                    iteration_best_solution = new_solution
 
 
-            ### 7. A new value for the convergence factor cf is computed
-            # TODO
+            ### Updating the best-so-far solution
+            trial_tac = time.time()
+            if trial_nb == 0:
+                best_so_far_solution = deepcopy(iteration_best_solution)
+                restart_best_solution = deepcopy(iteration_best_solution)
+            elif restart:
+                restart = False
+                restart_best_solution = None
+                best_so_far_solution = best_soltions(best_so_far_solution, iteration_best_solution)    
+            else:
+                restart_best_solution = best_soltions(iteration_best_solution, restart_best_solution)
+                best_so_far_solution = best_soltions(iteration_best_solution, best_so_far_solution)
+            
+            if best_solution == None:
+                best_solution = best_so_far_solution
+            else:
+                best_soltion = best_soltions(best_solution, best_so_far_solution)
+            
+            # Stats
+            results.append(get_score(best_so_far_solution))
+            violations.append(get_number_of_violations(best_so_far_solution))
+            times_best_found.append(trial_tic-trial_tac)
+            iter_best_found.append(trial_nb)
 
 
-            ### 8. Depending on cf and bs_update, a decision on whether to restart the algorithm or not is made
-            # TODO
+            ### A new value for the convergence factor cf is computed
+            cf = computeConvergenceFactor()
+            
 
+            ### Depending on cf and bs_update, a decision on whether to restart the algorithm or not is made
+            if bs_update and cf > 0.99:
+                bs_update = False
+                restart = True
+                ant.resetUniformPheromoneValues()
+            else:
+                if cf > 0.99:
+                    bs_update = True
+                ant.updatePheromoneValues(bs_update, cf)
+            trial_tic = time.time()
     
-    raise Exception("Advanced solver not implemented")
+    return best_soltion
+
+
+def best_soltions(soltion1, solution2):
+    return deepcopy(soltion1) if get_score(soltion1) > get_score(solution2) else deepcopy(solution2)
+
+
+def get_score(solution: List[int], tsptw: TSPTW):   
+    raise Exception(f"{get_score.__name__} is not implemented")
+
+
+def get_number_of_violations(solution: List[int], tsptw: TSPTW)
+    raise Exception(f"{get_number_of_violations.__name__} is not implemented")
 
 
 def local_search(solution: List[int], tsptw: TSPTW):
     #?: This part is the algo #3 of the paper
     # based on the 1-opt neighborhood in which a single customer is 
     # removed from the tour and reinserted in a different position
-    
-
     raise Exception(f"{local_search.__name__} is not implemented")
+
+
+def computeConvergenceFactor():
+    raise Exception(f"{computeConvergenceFactor.__name__} is not implemented")

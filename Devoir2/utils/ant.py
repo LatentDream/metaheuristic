@@ -17,17 +17,25 @@ class Ant:
         self.pheromone = [[0.5] * self._n] * self._n
         self.uniforme = np.random.uniform
 
+
     def resetUniformPheromoneValues(self):
         self.pheromone = [[0.5] * self._n] * self._n
 
-    def stochastic_sampling(n_samples, determininsm_rate):
-        pass
 
-    def construction(determinism_rate):
-        pass
+    def updatePheromoneValues(self, bs_update, cf):
+        raise Exception(f"{self.updatePheromoneValues.__name__} is not implemented")
 
-    def beam_construct(determinism_rate, beam_with, max_children, to_choose, n_samples, sample_rate):
-        # 
-        pass
+
+    def stochastic_sampling(self, n_samples, determininsm_rate):
+        raise Exception(f"{self.stochastic_sampling.__name__} is not implemented")
+
+
+    def construction(self, determinism_rate):
+        raise Exception(f"{self.construction.__name__} is not implemented")
+
+
+    def beam_construct(self, determinism_rate, beam_with, max_children, to_choose, n_samples, sample_rate):
+        raise Exception(f"{self.beam_construct.__name__} is not implemented")
+
 
 
