@@ -30,16 +30,14 @@ def solve(tsptw: TSPTW) -> List[int]:
     max_children = 100      # stochastic sampling parameter
     n_samples = 10          # stochastic sampling parameter
     sample_percent = 100    # stochastic sampling parameter
-    sample_rate =  1        # stochastic sampling parameter
+    sample_rate = int((sample_percent * (tsptw.num_nodes - 1) / 100.0) + 0.5) + 1
     do_local_search = False # If the local search heuristic is executed
 
     trial_time = 30 * 60
     tic = time.time()
-    to_choose = int(beam_width * mu)
-    sample_rate = int((sample_percent * (tsptw.num_nodes - 1) / 100.0) + 0.5) + 1
-
+    
     ant = Ant(tsptw, l_rate=l_rate, tau_max=tau_max, tau_min=tau_min)
-    pbs = ProbabilisticBeamSearch(tsptw, ant, determinism_rate, beam_width, max_children, to_choose, n_samples, sample_rate)
+    pbs = ProbabilisticBeamSearch(tsptw, ant, determinism_rate, beam_width, max_children, mu, n_samples, sample_rate)
 
     # To collec statistics
     best_solution = None

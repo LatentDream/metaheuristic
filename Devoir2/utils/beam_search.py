@@ -4,43 +4,53 @@ from utils.ant import Ant
 import numpy as np
 from math import inf
 
+from utils.beam_node import BeamNode
+
 class ProbabilisticBeamSearch():
 
-    def __init__(self, tsptw, ant, determinism_rate, beam_width, max_children, to_choose, n_samples, sample_rate):
+    def __init__(self, tsptw, ant, determinism_rate, beam_width, max_children, mu, n_samples, sample_rate):
+        assert int(beam_width) > 1, "beam_width must be greater than 1"
+        assert mu >= 1, "mu must be >= 1"
         self.tsptw: TSPTW = tsptw
         self.ant: Ant = ant
         self.determinism_rate = determinism_rate
-        self.beam_width = beam_width
+        self.beam_width = beam_width  # k_bw
         self.max_children = max_children
-        self.to_choose = to_choose
+        self.to_choose = int(beam_width * mu)
         self.n_samples  = n_samples 
         self.sample_rate = sample_rate
 
 
     def beam_construct(self):
-        return self.__beam_construct() if self.beam_width > 1 else self.__construction()
+        depot_id = 0
+        pheromone = self.ant.pheromone
+        beam_root = BeamNode(depot_id, pheromone)
+        self.__random_define_lambda()
+        number_of_children_not_in_solution = self.tsptw.num_nodes - 1  # C := C(B_t) 
+        self.__beam__construction_step(beam_root, number_of_children_not_in_solution)
+
+        # TODO: return argmin_lex{T | T in B_n}
+        raise Exception(f"{self.beam_construct.__name__} is not implemented")
+
         
 
-    def __construction(self):
-        raise Exception(f"{self.construction.__name__} is not implemented")
+    def __beam__construction_step(self, beam: BeamNode, number_of_children_not_in_solution: int):
+        
+        for _ in range(min(self.n_samples, number_of_children_not_in_solution)):
+            id_of_next_customer = self.__stochastic_sampling(beam.pheromone, beam.id)   # <P,j> := ChooseFrom(C
+            child_node = BeamNode(id_of_next_customer, beam.pheromone)                  # B_{t+1} := B_t union <P,j>
+            child_node.pheromone[:, beam.id] = 0.                                       # C := C\<P,j>
+            beam.children.add(child_node)
+        
+        # Todo: B_{t+1} := Reduce(B_{t+1}, k_bw)
 
+        for beam_child in beam.children:
+            self.__beam__construction_step(beam_child, number_of_children_not_in_solution-1)  # for t := 0 to n (recursive)
 
-    def __beam_construct(self):
-        """
-        """
-        last_customer_added = 0
-
-
-
-        raise Exception(f"{self.beam_construct.__name__} is not implemented")
-      
     
-    def __stochastic_sampling(self, pheromone: List[List[float]], last_customer_added):
+    def __stochastic_sampling(self, pheromone: List[List[float]], last_customer_added) -> int:
         """
-        At each step, the set of unvisited costumers is denoted by N(P). Once all customers
-        have been added to the tour, it is completed by adding node 0 which represents the depot. The
-        decision of which customer to choose at each step is done with the help of pheromone information and
-        heuristic information.
+        -> ChooseFrom(C) from the paper
         """
         # first generate a random number q uniformly distributed [0; 1] 
         q = np.random.uniform(0.0, 1.0)
@@ -64,15 +74,16 @@ class ProbabilisticBeamSearch():
             * lastest service time: l_j
             * earliest service time: e_k
         """                 
-        # random weight
-        lambda_c = np.random.uniform(0, 1.0)
-        lambda_l = np.random.uniform(0, 1.0-lambda_c)
-        lambda_e = 1.0 - lambda_c - lambda_l
         c, l, e = self.__heuristic_benefit_of_visiting_customer_attributes
-        eta = lambda_c * c + lambda_l * l + lambda_e * e
+        eta = self.lambda_c * c + self.lambda_l * l + self.lambda_e * e
 
         return eta
     
+    def __random_define_lambda(self):
+        self.lambda_c = np.random.uniform(0, 1.0)
+        self.lambda_l = np.random.uniform(0, 1.0-self.lambda_c)
+        self.lambda_e = 1.0 - self.lambda_c - self.lambda_l
+
     @property
     def __heuristic_benefit_of_visiting_customer_attributes(self):
         """ Return standardize c, l, and e from equation 4 """
