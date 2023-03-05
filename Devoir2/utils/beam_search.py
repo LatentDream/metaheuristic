@@ -29,9 +29,9 @@ class ProbabilisticBeamSearch():
         number_of_children_not_in_solution = self.tsptw.num_nodes - 1  # C := C(B_t) 
         self.__beam__construction_step(beam_root, number_of_children_not_in_solution)
 
-        # TODO: return argmin_lex{T | T in B_n}
-        raise Exception(f"{self.beam_construct.__name__} is not implemented")
-
+        potential_solutions = beam_root.extract_solution() 
+        potential_solutions_cost = [self.tsptw.get_solution_cost(solution) for solution in potential_solutions]
+        return potential_solutions[np.argmin(potential_solutions_cost)] # return argmin_lex{T | T in B_n}
         
 
     def __beam__construction_step(self, beam: BeamNode, number_of_children_not_in_solution: int):

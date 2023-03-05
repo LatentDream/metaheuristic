@@ -79,7 +79,7 @@ def solve(tsptw: TSPTW) -> List[int]:
                 iteration_best_solution = pbs.beam_construct()
 
                 ### Then subject to the application of local search
-                while True and do_local_search:
+                while False and do_local_search:
                     new_solution = local_search(iteration_best_solution)
                     iteration_best_solution = get_best_soltion(new_solution, iteration_best_solution)
 
