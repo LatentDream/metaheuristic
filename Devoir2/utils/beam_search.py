@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from tsptw import TSPTW
 from utils.ant import Ant
 import numpy as np
@@ -8,47 +8,56 @@ from utils.beam_node import BeamNode
 
 class ProbabilisticBeamSearch():
 
-    def __init__(self, tsptw, ant, determinism_rate, beam_width, max_children, mu, n_samples, sample_rate):
-        assert int(beam_width) > 1, "beam_width must be greater than 1"
+    def __init__(self, 
+                 tsptw: TSPTW, 
+                 ant: Ant, 
+                 beam_width: int = 1, 
+                 determinism_rate: float = 0.9, 
+                 max_children: int = 100, 
+                 mu: float = 0.2, 
+                 n_samples: int = 10, 
+                 sample_percent: int = 100):
+        assert int(beam_width) > 0, "beam_width must be greater than 1"
         assert mu >= 1, "mu must be >= 1"
         self.tsptw: TSPTW = tsptw
         self.ant: Ant = ant
-        self.determinism_rate = determinism_rate
         self.beam_width = beam_width  # k_bw
-        self.max_children = max_children
-        self.to_choose = int(beam_width * mu)
-        self.n_samples  = n_samples 
-        self.sample_rate = sample_rate
+        self.determinism_rate = determinism_rate
+        self.max_children = max_children #! NOT USED 
+        self.mu_k_bw = int(beam_width * mu)
+        self.n_samples  = n_samples #! NOT USED 
+        self.sample_rate = int((sample_percent * (tsptw.num_nodes - 1) / 100.0) + 0.5) + 1 #! NOT USED  
 
 
-    def beam_construct(self):
+    def beam_construct(self) -> List[int]:
         depot_id = 0
         pheromone = self.ant.pheromone
         beam_root = BeamNode(depot_id, pheromone)
         self.__random_define_lambda()
         number_of_children_not_in_solution = self.tsptw.num_nodes - 1  # C := C(B_t) 
-        self.__beam__construction_step(beam_root, number_of_children_not_in_solution)
+        # switch when Reduce is implemented self.__beam__construction_step(beam_root, number_of_children_not_in_solution) # for t := 0 to n (recursive)
+        self.__beam__construction_step(beam_root, self.mu_k_bw, number_of_children_not_in_solution) # for t := 0 to n (recursive)
 
         potential_solutions = beam_root.extract_solution() 
         potential_solutions_cost = [self.tsptw.get_solution_cost(solution) for solution in potential_solutions]
-        return potential_solutions[np.argmin(potential_solutions_cost)] # return argmin_lex{T | T in B_n}
+        return potential_solutions[np.argmin(potential_solutions_cost)] + [0] # return argmin_lex{T | T in B_n}
         
 
-    def __beam__construction_step(self, beam: BeamNode, number_of_children_not_in_solution: int):
+    # switch when Reduce is implemented def __beam__construction_step(self, beam: BeamNode, number_of_children_not_in_solution: int) -> None:
+    def __beam__construction_step(self, beam: BeamNode, mu_k_bw: int, number_of_children_not_in_solution: int) -> None:
         
-        for _ in range(min(self.n_samples, number_of_children_not_in_solution)):
+        for _ in range(min(mu_k_bw, number_of_children_not_in_solution)):
             id_of_next_customer = self.__stochastic_sampling(beam.pheromone, beam.id)   # <P,j> := ChooseFrom(C
-            child_node = BeamNode(id_of_next_customer, beam.pheromone)                  # B_{t+1} := B_t union <P,j>
-            child_node.pheromone[:, beam.id] = 0.                                       # C := C\<P,j>
+            child_node = BeamNode(id_of_next_customer, beam.pheromone)                  # B_{t+1} := B_t union <P,j> and C := C\<P,j>
             beam.children.add(child_node)
-        
         # Todo: B_{t+1} := Reduce(B_{t+1}, k_bw)
 
         for beam_child in beam.children:
-            self.__beam__construction_step(beam_child, number_of_children_not_in_solution-1)  # for t := 0 to n (recursive)
+            # switch when Reduce is implemented self.__beam__construction_step(beam_child, number_of_children_not_in_solution-1) # for t := 0 to n (recursive)
+            self.__beam__construction_step(beam_child, max(1, mu_k_bw-1), number_of_children_not_in_solution-1) # for t := 0 to n (recursive)
 
     
-    def __stochastic_sampling(self, pheromone: List[List[float]], last_customer_added) -> int:
+    def __stochastic_sampling(self, pheromone: List[List[float]], last_customer_added: int) -> int:
         """
         -> ChooseFrom(C) from the paper
         """
@@ -65,7 +74,7 @@ class ProbabilisticBeamSearch():
             return np.random.choice([i for i in range(len(tau_eta))], p=p)
     
 
-    def __sample_heuristic_benefit_of_visiting_customer(self):
+    def __sample_heuristic_benefit_of_visiting_customer(self) -> np.ndarray[np.floating]:
         """
         Regarding the definition of n_ij, several existing greedy functions for the TSPTW may be used for that purpose
         To decide which customer should be visited next: small travel cost between customers is desirable
@@ -85,7 +94,7 @@ class ProbabilisticBeamSearch():
         self.lambda_e = 1.0 - self.lambda_c - self.lambda_l
 
     @property
-    def __heuristic_benefit_of_visiting_customer_attributes(self):
+    def __heuristic_benefit_of_visiting_customer_attributes(self) -> Tuple[np.ndarray[np.floating], np.ndarray[np.floating], np.ndarray[np.floating]]:
         """ Return standardize c, l, and e from equation 4 """
         if not hasattr(self, "travel_cost") or not hasattr(self, "lastest_service_time") or not hasattr(self, "earliest_service_time"):
             self.travel_cost = np.zeros(self.ant.pheromone.shape, float)

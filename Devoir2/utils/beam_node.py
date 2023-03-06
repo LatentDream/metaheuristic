@@ -7,11 +7,12 @@ class BeamNode:
     def __init__(self, node_id, pheromone):
         self.id = node_id
         self.pheromone = deepcopy(pheromone)
+        self.pheromone[:, self.id] = 0. # C := C\<P,j>
         self.children = set()
 
 
 
-    def extract_solution(self):
+    def extract_solution(self) -> list:
         def recursive_solution_builder(beam_node: BeamNode, solution: List[int], solutions_found: List[List[int]]):
             solution.append(beam_node.id)
             if len(beam_node.children) == 0:

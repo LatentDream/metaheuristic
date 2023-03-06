@@ -38,11 +38,15 @@ class Ant:
         k_ib, k_rb, k_bf = self.__get_ks(bs_update, cf)
         
         for i in range(self.n):
-            # find customer i #! 0 to n-1 -> add one #TODO Verif if it's right
-            p_ib_idx, p_rb_idx, p_bf_idx = p_ib.index(i+1), p_rb.index(i+1), p_bf.index(i+1)
+            # find customer i
+            p_ib_idx, p_bf_idx = p_ib.index(i), p_bf.index(i)
+            p_rb_idx = p_rb.index(i) if p_rb != None else -1
             for j in range(self.n):
                 # eps_ij = k_ib * p_ib_ij + k_rb * p_rb_ij + k_bf * p_bf_ij
-                eps_ij = k_ib * float(p_ib[p_ib_idx+1]==(j+1)) + k_rb * float(p_rb[p_rb_idx+1]==(j+1)) + k_bf * float(p_bf[p_bf_idx+1]==(j+1))
+                eps_ib_ij = k_ib * float(p_ib[p_ib_idx+1]==(j)) 
+                eps_bf_ij = k_bf * float(p_bf[p_bf_idx+1]==(j))
+                eps_rb_ij = k_rb * float(p_rb[p_rb_idx+1]==(j)) if p_rb != None else 0.
+                eps_ij = eps_ib_ij + eps_rb_ij + eps_bf_ij
                 # tau_ij = tau_if + l_rate * (eps_ij - tau_ij)
                 self.pheromone[i][j] += self.l_rate * (eps_ij - self.pheromone[i][j])
                 # Avoid complete convergence

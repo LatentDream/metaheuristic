@@ -37,7 +37,7 @@ pip install -r requirements.txt
 → Run problem
 ```
 python3 main.py --agent=naive --infile=instances/A_4.txt
-python3 main.py --agent=advanced --infile=instances/A_4.txt
+python3 main.py --agent=advanced --infile=instances/B_20.txt
 ```
 ---
 Solution tested:
