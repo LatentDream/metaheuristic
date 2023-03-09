@@ -26,10 +26,9 @@ def generate_population(tsptw: TSPTW, pop_size):
 
 
 def fitness(tsptw: TSPTW, solution):
-    # Compute the distance traveled by the salesman
     total_distance = tsptw.get_solution_cost(solution)
     if not tsptw.verify_solution(solution):
-        total_distance *= 100
+        total_distance *= 10
 
     return 1 / total_distance
 
@@ -77,6 +76,26 @@ def crossover(parent1, parent2):
             break
     child2.append(0)
     return child1, child2
+
+
+def get_pmx_value(idx, parent1, parent2, child):
+    """
+    Helper function for PMX crossover to determine the value of a missing gene.
+
+    Args:
+        idx (int): The index of the missing gene.
+        parent1 (list): The first parent chromosome.
+        parent2 (list): The second parent chromosome.
+        child (list): The child chromosome being constructed.
+
+    Returns:
+        The value of the missing gene based on the PMX.
+    """
+    value = parent1[idx]
+    while value in child:
+        idx = parent1.index(parent2[idx])
+        value = parent1[idx]
+    return value
 
 
 def m_point_crossover(parent1, parent2, m):
@@ -165,24 +184,18 @@ def genetic_algorithm(
             )
 
             # Update the best solution found so far
-            fitness_scores = [
-                fitness(tsptw, chromosome)
-                for chromosome in population
-                if tsptw.verify_solution(chromosome)
-            ]
-            if len(fitness_scores) > 0:
-                best_idx = np.argmax(fitness_scores)
-                if tsptw.get_solution_cost(population[best_idx]) < best_cost:
-                    best_solution = population[best_idx]
-                    best_cost = tsptw.get_solution_cost(population[best_idx])
-                    num_restarts = 0
-                    print("BEST SOLUTION FOUND : COST {}".format(best_cost))
-                else:
-                    num_restarts += 1
-                    if num_restarts % 10 == 0:
-                        # print("NO IMPROVEMENT AFTER 10 GENERATIONS, RESTARTING...")
-                        break
+            fitness_scores = [fitness(tsptw, chromosome) for chromosome in population]
+            best_idx = np.argmax(fitness_scores)
+
+            if tsptw.get_solution_cost(
+                population[best_idx]
+            ) < best_cost and tsptw.verify_solution(population[best_idx]):
+                best_solution = population[best_idx]
+                best_cost = tsptw.get_solution_cost(population[best_idx])
+                num_restarts = 0
+                print("BEST SOLUTION FOUND : COST {}".format(best_cost))
             else:
+                unsatisfies_solution = population[best_idx]
                 num_restarts += 1
                 if num_restarts % 10 == 0:
                     # print("NO IMPROVEMENT AFTER 10 GENERATIONS, RESTARTING...")
