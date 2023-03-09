@@ -26,7 +26,7 @@ def solve(tsptw: TSPTW) -> List[int]:
     l_rate = 0.1            # l_rate: the learning rate for pheromone values
     tau_min = 0.001         # lower limit for the pheromone values
     tau_max = 0.999         # upper limit for the pheromone values
-    determinism_rate = 0.9  # rate of determinism in the solution construction
+    determinism_rate = 0.2  # rate of determinism in the solution construction
     nb_of_trials = 1        #  number of trials to be executed for the given problem instance
     beam_width = 1          # parameters for the beam procedure
     mu = 4.0                # stochastic sampling parameter
@@ -81,8 +81,8 @@ def solve(tsptw: TSPTW) -> List[int]:
 
 
                 ### Probabilistic beam search algorithm is executed. This produces the iteration-best solution Pib
-                #?  Probabilistic beam search: This part is the algo #1 of the paper
                 for i in range(nb_of_ants):
+                    #?  Probabilistic beam search: This part is the algo #1 of the paper
                     iteration_best_solution = pbs.beam_construct()
                     ### Then subject to the application of local search
                     while False and do_local_search:
@@ -104,7 +104,7 @@ def solve(tsptw: TSPTW) -> List[int]:
                 
                 # Stats
                 results.append(get_score(best_so_far_solution, tsptw))
-                # violations.append(get_number_of_violations(best_so_far_solution))
+                violations.append(get_number_of_violations(best_so_far_solution, tsptw))
                 times_best_found.append(trial_tic-trial_tac)
                 iter_best_found.append(trial_nb)
                 
@@ -127,11 +127,14 @@ def solve(tsptw: TSPTW) -> List[int]:
                 nb_iter_done += 1
                 progress_bar.update(1)
     
-    print(f"Feasible solution ? {tsptw.verify_solution(best_soltion)}")
+    print(f"results: {zip(results, violations)} \n")
+
+    print(f"Number of violation: {get_number_of_violations(best_soltion, tsptw)}")
+    print(f"Feasible solution: {tsptw.verify_solution(best_soltion)}")
     return best_soltion
 
 
-def get_best_soltion(solution1, solution2, tsptw):
+def get_best_soltion(solution1, solution2, tsptw) -> List[int]:
     if solution1 == None and solution2 == None:
         return None
     if solution1 == None:
@@ -141,20 +144,71 @@ def get_best_soltion(solution1, solution2, tsptw):
     return deepcopy(solution1) if get_score(solution1, tsptw) < get_score(solution2, tsptw) else deepcopy(solution2)
 
 
-def get_score(solution: List[int], tsptw: TSPTW):   
+def get_score(solution: List[int], tsptw: TSPTW) -> int:   
     # ? Change for an estimation ? 
     return tsptw.get_solution_cost(solution)
 
 
-def get_number_of_violations(solution: List[int], tsptw: TSPTW):
-    # TODO: Next step
-    raise Exception(f"{get_number_of_violations.__name__} is not implemented")
+def get_number_of_violations(solution: List[int], tsptw: TSPTW) -> int:
+    nb_of_violation = 0
+    time_step = 0
+    last_stop = 0
+    for next_stop in solution[1:]:
+        edge = (last_stop, next_stop)
+        time_step += tsptw.graph.edges[edge]["weight"]
+        time_windows_begening, time_windows_end = tsptw.time_windows[next_stop]
+        if  time_step < time_windows_begening:
+            waiting_time = time_windows_begening - time_step
+            time_step += waiting_time
+        if time_step > time_windows_end:
+            nb_of_violation += 1
+    
+    return nb_of_violation
 
 
-def local_search(solution: List[int], tsptw: TSPTW):
+def local_search(solution: List[int], tsptw: TSPTW) -> List[int]:
     #?: This part is the algo #3 of the paper
     # based on the 1-opt neighborhood in which a single customer is 
     # removed from the tour and reinserted in a different position
-    # TODO: Next step after get_number_of_violations
+    p_best = deepcopy(solution)
+
+    for k in range(tsptw.num_nodes - 1):
+        p_test = deepcopy(solution)
+        if not is_time_window_infeasible(p_test[k], p_test[k+1], p_test, tsptw):
+            p_test = swap(p_test, k) # Algo #4
+            p_best = get_best_soltion(p_Test, p_best)
+            p_test2 = p_test
+            for d in range(k+1, tsptw.num_nodes-1):
+                if is_time_window_infeasible(p_test2[d], p_test2[d+1], p_test2, tsptw):
+                    break
+                p_test = swap(p_test, d)
+                p_best = get_best_soltion(p_test, p_best)
+            p_test = p_test2
+            for d in range(k-1, 0):
+                if is_time_window_infeasible(p_test2[d], p_test2[d+1], p_test2, tsptw):
+                    break
+                p_test = swap(p_test, d)
+                p_best = get_best_soltion(p_test, p_best)
+    
+    return p_best
+
     raise Exception(f"{local_search.__name__} is not implemented")
 
+
+def is_time_window_infeasible(last_stop: int, next_stop: int, solution: List[int], tsptw: TSPTW):
+    raise Exception(f"{is_time_window_infeasible.__name__} is not implemented")
+
+
+def swap(solution: List[int], k: int, tsptw: TSPTW) -> List[int]:
+    solu_cost_old = tsptw.get_solution_cost(solution)
+    violation_old = get_number_of_violations(solution, tsptw)
+    cost = delta_c(solution, k, tsptw)
+    # if tsptw.time_windows[]
+
+
+    raise Exception(f"{swap.__name__} is not implemented")
+
+def delta_c(solution: List[int], k: int, tsptw: TSPTW):
+    cost = sum([tsptw.graph.edges[(solution[idx], solution[idx+1])]["weight"] for idx in range(k, tsptw.num_nodes-1)])
+    cost -= sum([tsptw.graph.edges[(solution[idx], solution[idx+1])]["weight"] for idx in range(k, 0)])
+    return cost
