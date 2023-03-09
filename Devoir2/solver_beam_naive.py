@@ -58,10 +58,11 @@ def beam_search(tsptw: TSPTW, beam_width: int, time_limit: float) -> np.ndarray:
 
         # Update the beam with the new solutions
         beam = new_solutions
+        print("{} valid solutions found".format(len(new_solutions)))
         solutions.extend(new_solutions)
 
     # Return the best solution found so far
-    return max(solutions, key=lambda s: tsptw.get_solution_cost(s))
+    return min(solutions, key=lambda s: tsptw.get_solution_cost(s))
 
 
 def solve(tsptw: TSPTW) -> List[int]:
