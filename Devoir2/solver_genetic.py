@@ -6,6 +6,8 @@ import itertools
 import random
 import numpy as np
 from math import inf, ceil, log2, exp, log
+import solver_naive
+import random
 
 
 def generate_chromosome(tsptw: TSPTW):
@@ -13,6 +15,40 @@ def generate_chromosome(tsptw: TSPTW):
     random.shuffle(chromosome)
     chromosome = [0] + chromosome + [0]
     return chromosome
+
+
+def generate_random_valid_solution(tsptw: TSPTW) -> List[int]:
+    """
+    Generate a random valid solution to the TSPTW problem.
+    """
+
+    solution = [1]
+    time_left = [0] * (tsptw.num_nodes + 1)
+    time_left[1] = tsptw.time_windows[0][0]
+
+    while len(solution) < tsptw.num_nodes:
+        candidates = []
+        for node in tsptw.graph.neighbors(solution[-1]):
+            if node not in solution:
+                candidate_time = max(
+                    time_left[solution[-1]] + tsptw.graph[solution[-1]][node]["weight"],
+                    tsptw.time_windows[node - 1][0],
+                )
+                if candidate_time <= tsptw.time_windows[node - 1][1]:
+                    candidates.append(node)
+
+        if candidates:
+            next_node = random.choice(candidates)
+            solution.append(next_node)
+            time_left[next_node] = max(
+                tsptw.time_windows[next_node - 1][0],
+                time_left[solution[-2]]
+                + tsptw.graph[solution[-2]][next_node]["weight"],
+            )
+        else:
+            return generate_random_valid_solution(tsptw)
+
+    return solution
 
 
 def generate_population(tsptw: TSPTW, pop_size):
