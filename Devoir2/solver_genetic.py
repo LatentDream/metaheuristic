@@ -16,40 +16,38 @@ def generate_chromosome(tsptw: TSPTW):
 
 
 def generate_population(tsptw: TSPTW, pop_size):
-    "Generate a population made of unique random permutations, without satisfying the time constraints"
+    "Generate a population made of unique random permutations, and then repair the solutions to make them satisfy the hard constraints"
     population = []
     while len(population) < pop_size:
         chromosome = generate_chromosome(tsptw)
-        if chromosome not in population:
-            population.append(chromosome)
+        valid_chromosome = repair_search(tsptw, chromosome, max_iterations=1000)
+        if valid_chromosome not in population:
+            population.append(valid_chromosome)
+        print("Valid chromosome found")
     return population
 
 
 def fitness(tsptw: TSPTW, solution):
-    total_distance = tsptw.get_solution_cost(solution)
-    if not tsptw.verify_solution(solution):
-        total_distance *= 10
-
-    return 1 / total_distance
+    return 1 / tsptw.get_solution_cost(solution)
 
 
-def selection(tsptw: TSPTW, population, pop_size, tournament_size):
+def selection(tsptw: TSPTW, population, pop_size, tournament_size, tournament_accepted):
     # Returns a list of the selected unique best chromosomes :
     # The population size is preserved and the selection is made with a tournament
     selected = []
 
     if pop_size == len(population):
         return population
-    i = 0
+
+    # Tournament to select the best solutions among the new population
     while len(selected) < pop_size:
-        subset = random.sample(population, tournament_size)
-        fitness_scores = [fitness(tsptw, chromosome) for chromosome in subset]
-        fittest_idx = np.argmax(fitness_scores)
-        if subset[fittest_idx] not in selected:
-            selected.append(subset[fittest_idx])
-        if i > 10 * pop_size:
-            selected.append(generate_chromosome(tsptw))
-        i += 1
+        subset = random.sample(diff(population, selected), tournament_size)
+        fittest_solutions = sorted(
+            subset, key=lambda s: fitness(tsptw, s), reverse=True
+        )[:tournament_accepted]
+
+        selected.extend(fittest_solutions)
+
     return selected
 
 
@@ -150,7 +148,13 @@ def mutation(chromosome, mutation_rate):
 
 # Define the genetic algorithm function with restarts and a time limit
 def genetic_algorithm(
-    tsptw: TSPTW, num_generations, mutation_rate, tournament_size, pop_size, time_limit
+    tsptw: TSPTW,
+    num_generations,
+    mutation_rate,
+    tournament_size,
+    tournament_accepted,
+    pop_size,
+    time_limit,
 ):
     best_solution = None
     best_cost = inf
@@ -159,21 +163,28 @@ def genetic_algorithm(
 
     while time.time() - start_time < time_limit:
         # Generate the initial population
+        print("CREATING NEW POPULATION")
         population = generate_population(tsptw, pop_size)
+        print("POPULATION CREATED")
         # Iterate over the generations
         for i in range(num_generations):
             # Select the parents for the next generation
             # parents = selection(tsptw, population, pop_size // 2, tournament_size)
             parents = population
-
             # Create the offspring for the next generation
             offspring = []
             for j in range(len(parents) // 2):
                 parent1 = parents[j]
                 parent2 = parents[len(parents) - j - 1]
-                child1, child2 = m_point_crossover(parent1, parent2, 3)
-                offspring.append(mutation(child1, mutation_rate))
-                offspring.append(mutation(child2, mutation_rate))
+                child1, child2 = m_point_crossover(
+                    parent1, parent2, min(8, pop_size // 2)
+                )
+                child1 = mutation(child1, mutation_rate)
+                child1 = repair_search(tsptw, child1)
+                child2 = mutation(child2, mutation_rate)
+                child2 = repair_search(tsptw, child2)
+                offspring.append(child1)
+                offspring.append(child2)
 
             # Select the survivors for the next generation : we keep the same population size
             population = selection(
@@ -181,27 +192,64 @@ def genetic_algorithm(
                 population + offspring,
                 pop_size,
                 tournament_size,
+                tournament_accepted,
             )
 
             # Update the best solution found so far
             fitness_scores = [fitness(tsptw, chromosome) for chromosome in population]
             best_idx = np.argmax(fitness_scores)
 
-            if tsptw.get_solution_cost(
-                population[best_idx]
-            ) < best_cost and tsptw.verify_solution(population[best_idx]):
+            if tsptw.get_solution_cost(population[best_idx]) < best_cost:
                 best_solution = population[best_idx]
                 best_cost = tsptw.get_solution_cost(population[best_idx])
                 num_restarts = 0
                 print("BEST SOLUTION FOUND : COST {}".format(best_cost))
             else:
-                unsatisfies_solution = population[best_idx]
                 num_restarts += 1
                 if num_restarts % 10 == 0:
                     # print("NO IMPROVEMENT AFTER 10 GENERATIONS, RESTARTING...")
                     break
 
     return best_solution
+
+
+def repair_search(
+    tsptw: TSPTW, solution: List[int], max_iterations: int = 100
+) -> List[int]:
+
+    i = 0
+    # Iterate over a fixed number of iterations
+    while True:
+        # Select a random pair of nodes to exchange in the solution
+        node1 = random.randint(1, len(solution) - 2)  # exclude first and last nodes
+        node2 = random.randint(1, len(solution) - 2)  # exclude first and last nodes
+        while node1 == node2:
+            node2 = random.randint(1, len(solution) - 2)
+
+        # Swap the positions of the two nodes
+        new_solution = solution.copy()
+        new_solution[node1], new_solution[node2] = (
+            new_solution[node2],
+            new_solution[node1],
+        )
+
+        # If the new solution satisfies the constraints, add it to the valid solutions found
+        if tsptw.verify_solution(new_solution):
+            return new_solution
+
+        # If no valid solution can be found with the solution : generate another
+        if i % len(solution) ^ 2 == 0:
+            solution = generate_chromosome(tsptw)
+
+        i += 1
+
+    # Return the valid solutions found
+    return solutions
+
+
+def diff(list1, list2):
+    """Returns the difference between lists of lists a and b"""
+    return [x for x in list1 if x not in list2]
 
 
 def solve(tsptw: TSPTW) -> List[int]:
@@ -215,10 +263,12 @@ def solve(tsptw: TSPTW) -> List[int]:
             of the nodes. p1, ..., pn are all integers representing the id of the node. The solution starts and ends with 0
             as the tour starts from the depot
     """
-    mutation_rate = 0.1
+
+    mutation_rate = 0.01
     pop_size = tsptw.num_nodes
-    tournament_size = ceil(pop_size / 10)
-    num_generations = 100
+    tournament_size = ceil(pop_size / 4)
+    tournament_accepted = ceil(tournament_size / 5)
+    num_generations = 1000
     time_limit = 60
 
     return genetic_algorithm(
@@ -226,6 +276,7 @@ def solve(tsptw: TSPTW) -> List[int]:
         num_generations=num_generations,
         mutation_rate=mutation_rate,
         tournament_size=tournament_size,
+        tournament_accepted=tournament_accepted,
         pop_size=pop_size,
         time_limit=time_limit,
     )

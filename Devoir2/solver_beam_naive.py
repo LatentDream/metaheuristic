@@ -76,4 +76,4 @@ def solve(tsptw: TSPTW) -> List[int]:
             of the nodes. p1, ..., pn are all integers representing the id of the node. The solution starts and ends with 0
             as the tour starts from the depot
     """
-    return beam_search(tsptw, beam_width=20, time_limit=10)
+    return beam_search(tsptw, beam_width=100, time_limit=60*5)
