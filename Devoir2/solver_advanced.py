@@ -141,6 +141,10 @@ def get_best_soltion(solution1, solution2, tsptw) -> List[int]:
         return deepcopy(solution2)
     if solution2 == None:
         return deepcopy(solution1)
+    if get_number_of_violations(solution1, tsptw) == 0 and get_number_of_violations(solution2, tsptw) > 0:
+        return deepcopy(solution1)
+    if get_number_of_violations(solution1, tsptw) > 0 and get_number_of_violations(solution2, tsptw) == 0:
+        return deepcopy(solution2)
     return deepcopy(solution1) if get_score(solution1, tsptw) < get_score(solution2, tsptw) else deepcopy(solution2)
 
 
@@ -171,32 +175,42 @@ def local_search(solution: List[int], tsptw: TSPTW) -> List[int]:
     # based on the 1-opt neighborhood in which a single customer is 
     # removed from the tour and reinserted in a different position
     p_best = deepcopy(solution)
-
     for k in range(tsptw.num_nodes - 1):
         p_test = deepcopy(solution)
         if not is_time_window_infeasible(p_test[k], p_test[k+1], p_test, tsptw):
             p_test = swap(p_test, k) # Algo #4
-            p_best = get_best_soltion(p_Test, p_best)
-            p_test2 = p_test
+            p_best = get_best_soltion(p_test, p_best)
+            p_test2 = deepcopy(p_test)
             for d in range(k+1, tsptw.num_nodes-1):
-                if is_time_window_infeasible(p_test2[d], p_test2[d+1], p_test2, tsptw):
+                if is_time_window_infeasible(p_test[d], p_test[d+1], p_test, tsptw):
                     break
                 p_test = swap(p_test, d)
                 p_best = get_best_soltion(p_test, p_best)
             p_test = p_test2
             for d in range(k-1, 0):
-                if is_time_window_infeasible(p_test2[d], p_test2[d+1], p_test2, tsptw):
+                if is_time_window_infeasible(p_test[d], p_test[d+1], p_test, tsptw):
                     break
                 p_test = swap(p_test, d)
                 p_best = get_best_soltion(p_test, p_best)
-    
-    return p_best
 
-    raise Exception(f"{local_search.__name__} is not implemented")
+    return p_best
 
 
 def is_time_window_infeasible(last_stop: int, next_stop: int, solution: List[int], tsptw: TSPTW):
-    raise Exception(f"{is_time_window_infeasible.__name__} is not implemented")
+    # Find current time from the solution
+    current_time = 0
+    for k in range(tsptw.num_nodes - 1):
+        if solution[k] == last_stop:
+            break
+        current_time += tsptw.graph.edges[(solution[k], solution[k+1])]["weight"]
+        if current_time < (start_window:=tsptw.time_windows[solution[k+1]][0]):
+            current_time += start_window - current_time      
+    # Add travel time
+    current_time = tsptw.graph.edges[(last_stop, next_stop)]["weight"]
+    # Check if infeasible
+    if current_time > (end_time_window_client:=tsptw.time_windows[solution[k+1]][1]):
+        return True
+    return False     
 
 
 def swap(solution: List[int], k: int, tsptw: TSPTW) -> List[int]:
