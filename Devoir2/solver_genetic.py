@@ -56,10 +56,11 @@ def generate_population(tsptw: TSPTW, pop_size):
     population = []
     while len(population) < pop_size:
         chromosome = generate_chromosome(tsptw)
-        valid_chromosome = repair_search(tsptw, chromosome, max_iterations=1000)
-        if valid_chromosome not in population:
+        valid_chromosome = repair_search(tsptw, chromosome, max_iterations=100)
+        if valid_chromosome != None and valid_chromosome not in population:
             population.append(valid_chromosome)
-        print("Valid chromosome found")
+            print("VALID CHROMOSOME FOUND : {}/{}".format(len(population), pop_size))
+    print("POPULATION GENERATED")
     return population
 
 
@@ -201,11 +202,10 @@ def genetic_algorithm(
         # Generate the initial population
         print("CREATING NEW POPULATION")
         population = generate_population(tsptw, pop_size)
-        print("POPULATION CREATED")
         # Iterate over the generations
         for i in range(num_generations):
+
             # Select the parents for the next generation
-            # parents = selection(tsptw, population, pop_size // 2, tournament_size)
             parents = population
             # Create the offspring for the next generation
             offspring = []
@@ -250,12 +250,12 @@ def genetic_algorithm(
 
 
 def repair_search(
-    tsptw: TSPTW, solution: List[int], max_iterations: int = 100
+    tsptw: TSPTW, solution: List[int], max_iterations: int = 1000
 ) -> List[int]:
 
     i = 0
     # Iterate over a fixed number of iterations
-    while True:
+    while i <= max_iterations:
         # Select a random pair of nodes to exchange in the solution
         node1 = random.randint(1, len(solution) - 2)  # exclude first and last nodes
         node2 = random.randint(1, len(solution) - 2)  # exclude first and last nodes
@@ -273,14 +273,10 @@ def repair_search(
         if tsptw.verify_solution(new_solution):
             return new_solution
 
-        # If no valid solution can be found with the solution : generate another
-        if i % len(solution) ^ 2 == 0:
-            solution = generate_chromosome(tsptw)
-
         i += 1
 
     # Return the valid solutions found
-    return solutions
+    return None
 
 
 def diff(list1, list2):
@@ -305,7 +301,7 @@ def solve(tsptw: TSPTW) -> List[int]:
     tournament_size = ceil(pop_size / 4)
     tournament_accepted = ceil(tournament_size / 5)
     num_generations = 1000
-    time_limit = 60
+    time_limit = 60 * 5
 
     return genetic_algorithm(
         tsptw,
