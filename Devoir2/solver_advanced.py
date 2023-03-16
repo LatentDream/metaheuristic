@@ -6,6 +6,9 @@ from copy import deepcopy
 from utils.beam_search import ProbabilisticBeamSearch
 import time
 
+from utils.local_search import get_number_of_violations
+from utils.utils import get_best_soltion, get_score
+
 
 def solve(tsptw: TSPTW) -> List[int]:
     """Advanced solver for the prize-collecting Steiner tree problem.
@@ -132,97 +135,3 @@ def solve(tsptw: TSPTW) -> List[int]:
     print(f"Number of violation: {get_number_of_violations(best_soltion, tsptw)}")
     print(f"Feasible solution: {tsptw.verify_solution(best_soltion)}")
     return best_soltion
-
-
-def get_best_soltion(solution1, solution2, tsptw) -> List[int]:
-    if solution1 == None and solution2 == None:
-        return None
-    if solution1 == None:
-        return deepcopy(solution2)
-    if solution2 == None:
-        return deepcopy(solution1)
-    if get_number_of_violations(solution1, tsptw) == 0 and get_number_of_violations(solution2, tsptw) > 0:
-        return deepcopy(solution1)
-    if get_number_of_violations(solution1, tsptw) > 0 and get_number_of_violations(solution2, tsptw) == 0:
-        return deepcopy(solution2)
-    return deepcopy(solution1) if get_score(solution1, tsptw) < get_score(solution2, tsptw) else deepcopy(solution2)
-
-
-def get_score(solution: List[int], tsptw: TSPTW) -> int:   
-    # ? Change for an estimation ? 
-    return tsptw.get_solution_cost(solution)
-
-
-def get_number_of_violations(solution: List[int], tsptw: TSPTW) -> int:
-    nb_of_violation = 0
-    time_step = 0
-    last_stop = 0
-    for next_stop in solution[1:]:
-        edge = (last_stop, next_stop)
-        time_step += tsptw.graph.edges[edge]["weight"]
-        time_windows_begening, time_windows_end = tsptw.time_windows[next_stop]
-        if  time_step < time_windows_begening:
-            waiting_time = time_windows_begening - time_step
-            time_step += waiting_time
-        if time_step > time_windows_end:
-            nb_of_violation += 1
-    
-    return nb_of_violation
-
-
-def local_search(solution: List[int], tsptw: TSPTW) -> List[int]:
-    #?: This part is the algo #3 of the paper
-    # based on the 1-opt neighborhood in which a single customer is 
-    # removed from the tour and reinserted in a different position
-    p_best = deepcopy(solution)
-    for k in range(tsptw.num_nodes - 1):
-        p_test = deepcopy(solution)
-        if not is_time_window_infeasible(p_test[k], p_test[k+1], p_test, tsptw):
-            p_test = swap(p_test, k) # Algo #4
-            p_best = get_best_soltion(p_test, p_best)
-            p_test2 = deepcopy(p_test)
-            for d in range(k+1, tsptw.num_nodes-1):
-                if is_time_window_infeasible(p_test[d], p_test[d+1], p_test, tsptw):
-                    break
-                p_test = swap(p_test, d)
-                p_best = get_best_soltion(p_test, p_best)
-            p_test = p_test2
-            for d in range(k-1, 0):
-                if is_time_window_infeasible(p_test[d], p_test[d+1], p_test, tsptw):
-                    break
-                p_test = swap(p_test, d)
-                p_best = get_best_soltion(p_test, p_best)
-
-    return p_best
-
-
-def is_time_window_infeasible(last_stop: int, next_stop: int, solution: List[int], tsptw: TSPTW):
-    # Find current time from the solution
-    current_time = 0
-    for k in range(tsptw.num_nodes - 1):
-        if solution[k] == last_stop:
-            break
-        current_time += tsptw.graph.edges[(solution[k], solution[k+1])]["weight"]
-        if current_time < (start_window:=tsptw.time_windows[solution[k+1]][0]):
-            current_time += start_window - current_time      
-    # Add travel time
-    current_time = tsptw.graph.edges[(last_stop, next_stop)]["weight"]
-    # Check if infeasible
-    if current_time > (end_time_window_client:=tsptw.time_windows[solution[k+1]][1]):
-        return True
-    return False     
-
-
-def swap(solution: List[int], k: int, tsptw: TSPTW) -> List[int]:
-    solu_cost_old = tsptw.get_solution_cost(solution)
-    violation_old = get_number_of_violations(solution, tsptw)
-    cost = delta_c(solution, k, tsptw)
-    # if tsptw.time_windows[]
-
-
-    raise Exception(f"{swap.__name__} is not implemented")
-
-def delta_c(solution: List[int], k: int, tsptw: TSPTW):
-    cost = sum([tsptw.graph.edges[(solution[idx], solution[idx+1])]["weight"] for idx in range(k, tsptw.num_nodes-1)])
-    cost -= sum([tsptw.graph.edges[(solution[idx], solution[idx+1])]["weight"] for idx in range(k, 0)])
-    return cost
