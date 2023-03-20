@@ -24,8 +24,9 @@ def variable_neighborhood_search(tsptw):
     time_limit = 60 * 5
 
     # Initialize the candidate solution
-    candidate_solution = generate_random_solution(tsptw)
+    candidate_solution = generate_fit_solution(tsptw)
     best_solution = candidate_solution
+
     best_cost = tsptw.get_solution_cost(best_solution)
 
     # Set the initial neighborhood structure and size
@@ -40,7 +41,6 @@ def variable_neighborhood_search(tsptw):
         new_candidate_solution = generate_neighbor_solution(
             candidate_solution, neighborhood_structure, neighborhood_size
         )
-        # print(candidate_solution)
 
         # Verify if the new candidate solution is valid
         if tsptw.verify_solution(new_candidate_solution):
@@ -88,7 +88,7 @@ def variable_neighborhood_search(tsptw):
         # No progress made : restart on a new solution
         if no_progress_count == len(best_solution):
             no_progress_count = 0
-            candidate_solution = generate_random_solution(tsptw)
+            candidate_solution = generate_fit_solution(tsptw)
 
     return best_solution
 
@@ -98,6 +98,35 @@ def generate_random_solution(tsptw):
     random.shuffle(solution)
     solution = [0] + solution + [0]
     return solution
+
+
+def generate_fit_solution(tsptw):
+    best_sol = generate_random_solution(tsptw)
+    best_cost = get_number_of_violations(best_sol, tsptw)
+    for _ in range(1000):
+        solution = generate_random_solution(tsptw)
+        cost = get_number_of_violations(solution, tsptw)
+        if cost < best_cost:
+            best_sol = solution
+            best_cost = cost
+    return best_sol
+
+
+def get_number_of_violations(solution: List[int], tsptw: TSPTW) -> int:
+    nb_of_violation = 0
+    time_step = 0
+    last_stop = 0
+    for next_stop in solution[1:]:
+        edge = (last_stop, next_stop)
+        time_step += tsptw.graph.edges[edge]["weight"]
+        time_windows_begening, time_windows_end = tsptw.time_windows[next_stop]
+        if time_step < time_windows_begening:
+            waiting_time = time_windows_begening - time_step
+            time_step += waiting_time
+        if time_step > time_windows_end:
+            nb_of_violation += 1
+
+    return nb_of_violation
 
 
 def generate_neighbor_solution(solution, neighborhood_structure, neighborhood_size):
@@ -149,9 +178,4 @@ def relocate_subsequence(solution, neighborhood_size):
     new_solution[j:j] = subsequence
     new_solution.insert(0, 0)
     new_solution.append(0)
-
-    # print("sol", solution)
-    # print("i", i)
-    # print("j", j)
-    # print("new", new_solution)
     return new_solution
