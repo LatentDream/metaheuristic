@@ -26,6 +26,7 @@ def variable_neighborhood_search(tsptw):
     # Initialize the candidate solution
     candidate_solution = generate_random_solution(tsptw)
     best_solution = candidate_solution
+    best_cost = tsptw.get_solution_cost(best_solution)
 
     # Set the initial neighborhood structure and size
     neighborhood_structure = 1
@@ -39,36 +40,41 @@ def variable_neighborhood_search(tsptw):
         new_candidate_solution = generate_neighbor_solution(
             candidate_solution, neighborhood_structure, neighborhood_size
         )
-        # print(new_candidate_solution)
+        # print(candidate_solution)
 
         # Verify if the new candidate solution is valid
         if tsptw.verify_solution(new_candidate_solution):
-
             # Compute the cost of the new candidate solution
             new_candidate_cost = tsptw.get_solution_cost(new_candidate_solution)
             # Check if the new candidate solution is better than the current one
             if new_candidate_cost < tsptw.get_solution_cost(candidate_solution):
                 candidate_solution = new_candidate_solution
-
                 # Check if the new candidate solution is better than the best one found so far
-                if new_candidate_cost < tsptw.get_solution_cost(best_solution):
+                if new_candidate_cost < best_cost:
                     best_solution = new_candidate_solution
-                    print("BEST SOLUTION FOUND : {}".format(best_solution))
+                    best_cost = new_candidate_cost
+                    print(
+                        "BEST SOLUTION FOUND : {} | COST {}".format(
+                            best_solution, best_cost
+                        )
+                    )
 
                 # Reset the neighborhood structure and size
                 neighborhood_structure = 1
                 neighborhood_size = 3
+
             else:
                 # Increase the neighborhood structure
                 neighborhood_structure += 1
+                no_progress_count += 1
+
                 if neighborhood_structure > 3:
                     # Reset the neighborhood structure and size
                     neighborhood_structure = 1
                     neighborhood_size = 3
-            no_progress_count = 0
+
         else:
             # Increase the neighborhood size
-
             neighborhood_size += 1
             no_progress_count += 1
             neighborhood_structure += 1
@@ -80,7 +86,7 @@ def variable_neighborhood_search(tsptw):
         iterations += 1
 
         # No progress made : restart on a new solution
-        if no_progress_count > 2:
+        if no_progress_count == len(best_solution):
             no_progress_count = 0
             candidate_solution = generate_random_solution(tsptw)
 
@@ -88,15 +94,9 @@ def variable_neighborhood_search(tsptw):
 
 
 def generate_random_solution(tsptw):
-    nodes = [i for i in range(1, tsptw.num_nodes)]
-    solution = []
-    for i in range(tsptw.num_nodes - 1):
-        # Randomly select a node from the list of remaining nodes
-        node = random.choice(nodes)
-        nodes.remove(node)
-        solution.append(node)
-    solution.insert(0, 0)
-    solution.append(0)
+    solution = list(range(1, tsptw.num_nodes))
+    random.shuffle(solution)
+    solution = [0] + solution + [0]
     return solution
 
 
@@ -136,6 +136,9 @@ def reverse_subsequence(solution, neighborhood_size):
 
 
 def relocate_subsequence(solution, neighborhood_size):
+    if len(solution) <= neighborhood_size + 2:
+        return swap_nodes(solution, neighborhood_size)
+
     new_solution = solution[1:-1].copy()
     i = random.randint(0, len(solution) - neighborhood_size)
     j = random.randint(0, len(solution) - neighborhood_size)
