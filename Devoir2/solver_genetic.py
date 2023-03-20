@@ -6,37 +6,150 @@ import numpy as np
 from math import inf, ceil
 import random
 from copy import deepcopy
+from utils.ant import Ant
+from copy import deepcopy
+from utils.beam_search import ProbabilisticBeamSearch
 
 
-def generate_chromosome(tsptw: TSPTW):
-    chromosome = list(range(1, tsptw.num_nodes))
-    random.shuffle(chromosome)
-    chromosome = [0] + chromosome + [0]
-    return chromosome
+def solve(tsptw: TSPTW) -> List[int]:
+    """Advanced solver for the prize-collecting Steiner tree problem.
+
+    Args:
+        pcstp (PCSTP): object containing the graph for the instance to solve
+
+    Returns:
+        solution (List[int]): solution in the format [0, p1, p2, ..., pn, 0] where p1, ..., pn is a permutation
+            of the nodes. p1, ..., pn are all integers representing the id of the node. The solution starts and ends with 0
+            as the tour starts from the depot
+    """
+
+    mutation_rate = 0.05
+    pop_size = tsptw.num_nodes * 10
+    tournament_size = ceil(pop_size / 10)
+    tournament_accepted = ceil(tournament_size / 5)
+    num_generations = 100
+    time_limit = 60 * 5
+
+    l_rate = 0.1  # l_rate: the learning rate for pheromone values
+    tau_min = 0.001  # lower limit for the pheromone values
+    tau_max = 0.999  # upper limit for the pheromone values
+    determinism_rate = 0.2  # rate of determinism in the solution construction
+    beam_width = 1  # parameters for the beam procedure
+    mu = 4.0  # stochastic sampling parameter
+    max_children = 100  # stochastic sampling parameter
+    n_samples = 10  # stochastic sampling parameter
+    sample_percent = 100  # stochastic sampling parameter
+
+    global ant
+    ant = Ant(tsptw, l_rate=l_rate, tau_max=tau_max, tau_min=tau_min)
+
+    global pbs
+    pbs = ProbabilisticBeamSearch(
+        tsptw,
+        ant,
+        beam_width,
+        determinism_rate,
+        max_children,
+        mu,
+        n_samples,
+        sample_percent,
+    )
+
+    return genetic_algorithm(
+        tsptw,
+        num_generations=num_generations,
+        mutation_rate=mutation_rate,
+        tournament_size=tournament_size,
+        tournament_accepted=tournament_accepted,
+        pop_size=pop_size,
+        time_limit=time_limit,
+    )
+
+
+# Define the genetic algorithm function with restarts and a time limit
+def genetic_algorithm(
+    tsptw: TSPTW,
+    num_generations,
+    mutation_rate,
+    tournament_size,
+    tournament_accepted,
+    pop_size,
+    time_limit,
+):
+    best_solution = None
+    best_cost = inf
+    start_time = time.time()
+    num_restarts = 0
+
+    while time.time() - start_time < time_limit:
+        # Generate the initial population
+        population = generate_population(tsptw, pop_size)
+        # Iterate over the generations
+        for _ in range(num_generations):
+
+            # Select the parents for the next generation
+            parents = sorted(population, key=lambda s: fitness(tsptw, s), reverse=True)[
+                : pop_size // 3
+            ]
+
+            # Create the offspring for the next generation
+            offspring = []
+            for j in range(len(parents) // 2):
+                parent1 = parents[j]
+                parent2 = parents[len(parents) - j - 1]
+                child1, child2 = crossover(parent1, parent2)
+                child1 = mutation(child1, mutation_rate)
+                child2 = mutation(child2, mutation_rate)
+                offspring.append(child1)
+                offspring.append(child2)
+
+            population = parents + offspring
+
+            while len(population) < pop_size:
+                population.append(generate_fit_chromosome(tsptw))
+
+            # Select the survivors for the next generation : we keep the same population size
+            population = selection(
+                tsptw,
+                population,
+                pop_size,
+                tournament_size,
+                tournament_accepted,
+            )
+
+            # Update the best solution found so far
+            fitness_scores = [fitness(tsptw, chromosome) for chromosome in population]
+            best_idx = np.argmax(fitness_scores)
+            if (
+                tsptw.verify_solution(population[best_idx])
+                and tsptw.get_solution_cost(population[best_idx]) < best_cost
+            ):
+                best_solution = population[best_idx]
+                best_cost = tsptw.get_solution_cost(population[best_idx])
+                num_restarts = 0
+                print("BEST SOLUTION FOUND : COST {}".format(best_cost))
+            else:
+                num_restarts += 1
+                if num_restarts % 100 == 0:
+                    # print("NO IMPROVEMENT AFTER 100 GENERATIONS, RESTARTING...")
+                    break
+
+    return best_solution
 
 
 def generate_fit_chromosome(tsptw):
-    best_sol = generate_chromosome(tsptw)
-    best_cost = get_number_of_violations(best_sol, tsptw)
-    for _ in range(100):
-        solution = generate_chromosome(tsptw)
-        cost = get_number_of_violations(solution, tsptw)
-        if cost < best_cost:
-            best_sol = solution
-            best_cost = cost
-        if cost == 0:
-            return best_sol
-    return best_sol
+    return pbs.beam_construct()
 
 
 def generate_population(tsptw, pop_size):
     population = []
-    for _ in range(10 * pop_size):
-        population.append(generate_chromosome(tsptw))
+    for _ in range(pop_size *5):
+        population.append(generate_fit_chromosome(tsptw))
 
     population = sorted(
         population, key=lambda s: get_number_of_violations(s, tsptw), reverse=False
     )[:pop_size]
+
     return population
 
 
@@ -114,137 +227,8 @@ def mutation(chromosome, mutation_rate):
     return chromosome
 
 
-# Define the genetic algorithm function with restarts and a time limit
-def genetic_algorithm(
-    tsptw: TSPTW,
-    num_generations,
-    mutation_rate,
-    tournament_size,
-    tournament_accepted,
-    pop_size,
-    time_limit,
-):
-    best_solution = None
-    best_cost = inf
-    start_time = time.time()
-    num_restarts = 0
-
-    while time.time() - start_time < time_limit:
-        # Generate the initial population
-        population = generate_population(tsptw, pop_size)
-        # Iterate over the generations
-        for _ in range(num_generations):
-
-            # Select the parents for the next generation
-            parents = sorted(population, key=lambda s: fitness(tsptw, s), reverse=True)[
-                : pop_size // 3
-            ]
-
-            # Create the offspring for the next generation
-            offspring = []
-            for j in range(len(parents) // 2):
-                parent1 = parents[j]
-                parent2 = parents[len(parents) - j - 1]
-                child1, child2 = crossover(parent1, parent2)
-                child1 = mutation(child1, mutation_rate)
-                child2 = mutation(child2, mutation_rate)
-                offspring.append(child1)
-                offspring.append(child2)
-
-            population = parents + offspring
-
-            while len(population) < pop_size:
-                population.append(generate_fit_chromosome(tsptw))
-
-            # Select the survivors for the next generation : we keep the same population size
-            population = selection(
-                tsptw,
-                population,
-                pop_size,
-                tournament_size,
-                tournament_accepted,
-            )
-
-            # Update the best solution found so far
-            fitness_scores = [fitness(tsptw, chromosome) for chromosome in population]
-            best_idx = np.argmax(fitness_scores)
-            if (
-                tsptw.verify_solution(population[best_idx])
-                and tsptw.get_solution_cost(population[best_idx]) < best_cost
-            ):
-                best_solution = population[best_idx]
-                best_cost = tsptw.get_solution_cost(population[best_idx])
-                num_restarts = 0
-                print("BEST SOLUTION FOUND : COST {}".format(best_cost))
-            else:
-                num_restarts += 1
-                if num_restarts % 100 == 0:
-                    # print("NO IMPROVEMENT AFTER 100 GENERATIONS, RESTARTING...")
-                    break
-
-    return best_solution
-
-
-# def repair_search(
-#     tsptw: TSPTW, solution: List[int], max_iterations: int = 1000
-# ) -> List[int]:
-
-#     i = 0
-#     # Iterate over a fixed number of iterations
-#     while i <= max_iterations:
-#         # Select a random pair of nodes to exchange in the solution
-#         node1 = random.randint(1, len(solution) - 2)  # exclude first and last nodes
-#         node2 = random.randint(1, len(solution) - 2)  # exclude first and last nodes
-#         while node1 == node2:
-#             node2 = random.randint(1, len(solution) - 2)
-
-#         # Swap the positions of the two nodes
-#         new_solution = solution.copy()
-#         new_solution[node1], new_solution[node2] = (
-#             new_solution[node2],
-#             new_solution[node1],
-#         )
-
-#         # If the new solution satisfies the constraints, add it to the valid solutions found
-#         if tsptw.verify_solution(new_solution):
-#             return new_solution
-
-#         i += 1
-
-#     # Return the valid solutions found
-#     return None
-
-
-def diff(list1, list2):
-    """Returns the difference between lists of lists a and b"""
-    return [x for x in list1 if x not in list2]
-
-
-def solve(tsptw: TSPTW) -> List[int]:
-    """Advanced solver for the prize-collecting Steiner tree problem.
-
-    Args:
-        pcstp (PCSTP): object containing the graph for the instance to solve
-
-    Returns:
-        solution (List[int]): solution in the format [0, p1, p2, ..., pn, 0] where p1, ..., pn is a permutation
-            of the nodes. p1, ..., pn are all integers representing the id of the node. The solution starts and ends with 0
-            as the tour starts from the depot
-    """
-
-    mutation_rate = 0.05
-    pop_size = tsptw.num_nodes * 10
-    tournament_size = ceil(pop_size / 10)
-    tournament_accepted = ceil(tournament_size / 5)
-    num_generations = 100
-    time_limit = 60 * 5
-
-    return genetic_algorithm(
-        tsptw,
-        num_generations=num_generations,
-        mutation_rate=mutation_rate,
-        tournament_size=tournament_size,
-        tournament_accepted=tournament_accepted,
-        pop_size=pop_size,
-        time_limit=time_limit,
-    )
+def generate_chromosome(tsptw: TSPTW):
+    chromosome = list(range(1, tsptw.num_nodes))
+    random.shuffle(chromosome)
+    chromosome = [0] + chromosome + [0]
+    return chromosome

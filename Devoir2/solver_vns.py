@@ -3,6 +3,21 @@ import time
 from typing import List
 from tsptw import TSPTW
 import random
+from utils.ant import Ant
+from copy import deepcopy
+from math import inf
+
+from utils.beam_search import ProbabilisticBeamSearch
+
+l_rate = 0.1  # l_rate: the learning rate for pheromone values
+tau_min = 0.001  # lower limit for the pheromone values
+tau_max = 0.999  # upper limit for the pheromone values
+determinism_rate = 0.2  # rate of determinism in the solution construction
+beam_width = 1  # parameters for the beam procedure
+mu = 4.0  # stochastic sampling parameter
+max_children = 100  # stochastic sampling parameter
+n_samples = 10  # stochastic sampling parameter
+sample_percent = 100  # stochastic sampling parameter
 
 
 def solve(tsptw: TSPTW) -> List[int]:
@@ -16,18 +31,33 @@ def solve(tsptw: TSPTW) -> List[int]:
             of the nodes. p1, ..., pn are all integers representing the id of the node. The solution starts and ends with 0
             as the tour starts from the depot
     """
+
+    global ant
+    ant = Ant(tsptw, l_rate=l_rate, tau_max=tau_max, tau_min=tau_min)
+
+    global pbs
+    pbs = ProbabilisticBeamSearch(
+        tsptw,
+        ant,
+        beam_width,
+        determinism_rate,
+        max_children,
+        mu,
+        n_samples,
+        sample_percent,
+    )
+
     return variable_neighborhood_search(tsptw)
 
 
 def variable_neighborhood_search(tsptw):
     start_time = time.time()
-    time_limit = 60 * 5
+    time_limit = 60 * 30
 
     # Initialize the candidate solution
-    candidate_solution = generate_fit_solution(tsptw)
+    candidate_solution = generate_fit_solution()
     best_solution = candidate_solution
-
-    best_cost = tsptw.get_solution_cost(best_solution)
+    best_cost = inf
 
     # Set the initial neighborhood structure and size
     neighborhood_structure = 1
@@ -45,6 +75,7 @@ def variable_neighborhood_search(tsptw):
 
         # Verify if the new candidate solution is valid
         if tsptw.verify_solution(new_candidate_solution):
+            print("verify")
             # Compute the cost of the new candidate solution
             new_candidate_cost = tsptw.get_solution_cost(new_candidate_solution)
             # Check if the new candidate solution is better than the current one
@@ -87,49 +118,16 @@ def variable_neighborhood_search(tsptw):
         iterations += 1
 
         # No progress made : restart on a new solution
-        if no_progress_count == 100:
+        if no_progress_count == 3:
             no_progress_count = 0
-            candidate_solution = generate_random_solution(tsptw)
+            candidate_solution = generate_fit_solution()
 
     return best_solution
 
 
-def generate_random_solution(tsptw):
-    solution = list(range(1, tsptw.num_nodes))
-    random.shuffle(solution)
-    solution = [0] + solution + [0]
+def generate_fit_solution():
+    solution = pbs.beam_construct()
     return solution
-
-
-def generate_fit_solution(tsptw):
-    best_sol = generate_random_solution(tsptw)
-    best_cost = get_number_of_violations(best_sol, tsptw)
-    for _ in range(10000):
-        solution = generate_random_solution(tsptw)
-        cost = get_number_of_violations(solution, tsptw)
-        if cost < best_cost:
-            best_sol = solution
-            best_cost = cost
-        if cost == 0:
-            return best_sol
-    return best_sol
-
-
-def get_number_of_violations(solution: List[int], tsptw: TSPTW) -> int:
-    nb_of_violation = 0
-    time_step = 0
-    last_stop = 0
-    for next_stop in solution[1:]:
-        edge = (last_stop, next_stop)
-        time_step += tsptw.graph.edges[edge]["weight"]
-        time_windows_begening, time_windows_end = tsptw.time_windows[next_stop]
-        if time_step < time_windows_begening:
-            waiting_time = time_windows_begening - time_step
-            time_step += waiting_time
-        if time_step > time_windows_end:
-            nb_of_violation += 1
-
-    return nb_of_violation
 
 
 def generate_neighbor_solution(solution, neighborhood_structure, neighborhood_size):
@@ -182,3 +180,27 @@ def relocate_subsequence(solution, neighborhood_size):
     new_solution.insert(0, 0)
     new_solution.append(0)
     return new_solution
+
+
+# def generate_random_solution(tsptw):
+#     solution = list(range(1, tsptw.num_nodes))
+#     random.shuffle(solution)
+#     solution = [0] + solution + [0]
+#     return solution
+
+
+# def get_number_of_violations(solution: List[int], tsptw: TSPTW) -> int:
+#     nb_of_violation = 0
+#     time_step = 0
+#     last_stop = 0
+#     for next_stop in solution[1:]:
+#         edge = (last_stop, next_stop)
+#         time_step += tsptw.graph.edges[edge]["weight"]
+#         time_windows_begening, time_windows_end = tsptw.time_windows[next_stop]
+#         if time_step < time_windows_begening:
+#             waiting_time = time_windows_begening - time_step
+#             time_step += waiting_time
+#         if time_step > time_windows_end:
+#             nb_of_violation += 1
+
+#     return nb_of_violation
