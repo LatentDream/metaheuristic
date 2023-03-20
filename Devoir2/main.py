@@ -2,6 +2,7 @@ import argparse
 import solver_naive
 import solver_advanced
 import solver_genetic
+import solver_vns
 import solver_beam_naive
 import time
 from tsptw import TSPTW
@@ -41,6 +42,9 @@ if __name__ == "__main__":
     elif args.agent == "genetic":
         # Genetic algorithm
         solution = solver_genetic.solve(tsptw)
+    elif args.agent == "vns":
+        # VNS algorithm
+        solution = solver_vns.solve(tsptw)
     elif args.agent == "beam":
         # Simple beam search
         solution = solver_beam_naive.solve(tsptw)

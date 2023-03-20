@@ -4,6 +4,7 @@ from tsptw import TSPTW
 import networkx as nx
 import itertools
 
+
 def solve(tsptw: TSPTW) -> List[int]:
     """Naive solution to the problem: connect 2 terminal nodes via shortest path.
 
@@ -11,7 +12,7 @@ def solve(tsptw: TSPTW) -> List[int]:
         tsptw (TSPTW): object containing the graph for the instance to solve
 
     Returns:
-        solution (List[int]): solution in the format [0, p1, p2, ..., pn, 0] where p1, ..., pn is a permutation 
+        solution (List[int]): solution in the format [0, p1, p2, ..., pn, 0] where p1, ..., pn is a permutation
             of the nodes. p1, ..., pn are all integers representing the id of the node. The solution starts and ends with 0
             as the tour starts from the depot
     """
