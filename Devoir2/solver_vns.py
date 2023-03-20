@@ -38,6 +38,7 @@ def variable_neighborhood_search(tsptw):
     no_progress_count = 0
     while time.time() - start_time < time_limit:
         # Generate a new candidate solution in the current neighborhood structure
+
         new_candidate_solution = generate_neighbor_solution(
             candidate_solution, neighborhood_structure, neighborhood_size
         )
@@ -86,9 +87,9 @@ def variable_neighborhood_search(tsptw):
         iterations += 1
 
         # No progress made : restart on a new solution
-        if no_progress_count == len(best_solution):
+        if no_progress_count == 100:
             no_progress_count = 0
-            candidate_solution = generate_fit_solution(tsptw)
+            candidate_solution = generate_random_solution(tsptw)
 
     return best_solution
 
@@ -103,12 +104,14 @@ def generate_random_solution(tsptw):
 def generate_fit_solution(tsptw):
     best_sol = generate_random_solution(tsptw)
     best_cost = get_number_of_violations(best_sol, tsptw)
-    for _ in range(1000):
+    for _ in range(10000):
         solution = generate_random_solution(tsptw)
         cost = get_number_of_violations(solution, tsptw)
         if cost < best_cost:
             best_sol = solution
             best_cost = cost
+        if cost == 0:
+            return best_sol
     return best_sol
 
 

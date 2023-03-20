@@ -1,12 +1,9 @@
-from typing import List, Tuple
+from typing import List
 from tsptw import TSPTW
 import time
-import networkx as nx
-import itertools
 import random
 import numpy as np
-from math import inf, ceil, log2, exp, log
-import solver_naive
+from math import inf, ceil
 import random
 from copy import deepcopy
 
@@ -18,46 +15,28 @@ def generate_chromosome(tsptw: TSPTW):
     return chromosome
 
 
-# def generate_random_valid_solution(tsptw: TSPTW) -> List[int]:
-#     """
-#     Generate a random valid solution to the TSPTW problem.
-#     """
-
-#     solution = [1]
-#     time_left = [0] * (tsptw.num_nodes + 1)
-#     time_left[1] = tsptw.time_windows[0][0]
-
-#     while len(solution) < tsptw.num_nodes:
-#         candidates = []
-#         for node in tsptw.graph.neighbors(solution[-1]):
-#             if node not in solution:
-#                 candidate_time = max(
-#                     time_left[solution[-1]] + tsptw.graph[solution[-1]][node]["weight"],
-#                     tsptw.time_windows[node - 1][0],
-#                 )
-#                 if candidate_time <= tsptw.time_windows[node - 1][1]:
-#                     candidates.append(node)
-
-#         if candidates:
-#             next_node = random.choice(candidates)
-#             solution.append(next_node)
-#             time_left[next_node] = max(
-#                 tsptw.time_windows[next_node - 1][0],
-#                 time_left[solution[-2]]
-#                 + tsptw.graph[solution[-2]][next_node]["weight"],
-#             )
-#         else:
-#             return generate_random_valid_solution(tsptw)
-
-#     return solution
+def generate_fit_chromosome(tsptw):
+    best_sol = generate_chromosome(tsptw)
+    best_cost = get_number_of_violations(best_sol, tsptw)
+    for _ in range(100):
+        solution = generate_chromosome(tsptw)
+        cost = get_number_of_violations(solution, tsptw)
+        if cost < best_cost:
+            best_sol = solution
+            best_cost = cost
+        if cost == 0:
+            return best_sol
+    return best_sol
 
 
-def generate_population(tsptw: TSPTW, pop_size):
-    "Generate a population made of unique random permutations, and then repair the solutions to make them satisfy the hard constraints"
+def generate_population(tsptw, pop_size):
     population = []
-    while len(population) < pop_size:
+    for _ in range(10 * pop_size):
         population.append(generate_chromosome(tsptw))
 
+    population = sorted(
+        population, key=lambda s: get_number_of_violations(s, tsptw), reverse=False
+    )[:pop_size]
     return population
 
 
@@ -86,9 +65,6 @@ def selection(tsptw: TSPTW, population, pop_size, tournament_size, tournament_ac
     # Returns a list of the selected unique best chromosomes :
     # The population size is preserved and the selection is made with a tournament
     selected = []
-
-    if pop_size == len(population):
-        return population
 
     # Tournament to select the best solutions among the new population
     while len(selected) < pop_size:
@@ -127,57 +103,6 @@ def crossover(parent1, parent2):
     child2.append(0)
 
     return child1, child2
-
-
-# def crossover(a, b):
-#     a1 = deepcopy(a)
-#     b1 = deepcopy(b)
-#     crossover_point = random.randint(1, len(a))
-#     for i in range(crossover_point):
-#         a1[i], b1[i] = b1[i], a1[i]
-#     print(a1)
-#     return a1, b1
-
-
-# def m_point_crossover(parent1, parent2, m):
-#     """
-#     Applies m-point crossover to two parents and returns two offspring.
-#     """
-#     size = len(parent1)
-#     crossover_points = sorted(random.sample(range(1, size), m))
-
-#     offspring1 = [-1] * size
-#     offspring2 = [-1] * size
-
-#     for i in range(m + 1):
-#         if i == 0:
-#             start = 0
-#         else:
-#             start = crossover_points[i - 1]
-
-#         if i == m:
-#             end = size
-#         else:
-#             end = crossover_points[i]
-
-#         offspring1[start:end] = parent1[start:end]
-#         offspring2[start:end] = parent2[start:end]
-
-#     # Fill in remaining positions with genes from the other parent
-#     for i in range(size):
-#         if offspring1[i] == -1:
-#             if parent2[i] not in offspring1:
-#                 offspring1[i] = parent2[i]
-#             else:
-#                 offspring1[i] = get_pmx_value(parent1[i], parent2, offspring1)
-
-#         if offspring2[i] == -1:
-#             if parent1[i] not in offspring2:
-#                 offspring2[i] = parent1[i]
-#             else:
-#                 offspring2[i] = get_pmx_value(parent2[i], parent1, offspring2)
-
-#     return offspring1, offspring2
 
 
 # Define the mutation function
@@ -227,8 +152,9 @@ def genetic_algorithm(
                 offspring.append(child2)
 
             population = parents + offspring
+
             while len(population) < pop_size:
-                population.append(generate_chromosome(tsptw))
+                population.append(generate_fit_chromosome(tsptw))
 
             # Select the survivors for the next generation : we keep the same population size
             population = selection(
@@ -307,8 +233,8 @@ def solve(tsptw: TSPTW) -> List[int]:
     """
 
     mutation_rate = 0.05
-    pop_size = tsptw.num_nodes*100
-    tournament_size = ceil(pop_size / 100)
+    pop_size = tsptw.num_nodes * 10
+    tournament_size = ceil(pop_size / 10)
     tournament_accepted = ceil(tournament_size / 5)
     num_generations = 100
     time_limit = 60 * 5
