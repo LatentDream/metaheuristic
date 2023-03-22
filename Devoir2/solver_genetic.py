@@ -23,8 +23,8 @@ def solve(tsptw: TSPTW) -> List[int]:
             as the tour starts from the depot
     """
 
-    mutation_rate = 0.05
-    pop_size = tsptw.num_nodes * 10
+    mutation_rate = 0.1
+    pop_size = tsptw.num_nodes
     tournament_size = ceil(pop_size / 10)
     tournament_accepted = ceil(tournament_size / 5)
     num_generations = 100
@@ -76,17 +76,23 @@ def genetic_algorithm(
     pop_size,
     time_limit,
 ):
-    best_solution = None
-    best_cost = inf
+    time_constraints = tsptw.time_windows
+    best_solution = greedy_tsp(tsptw, time_constraints)
+    best_cost = tsptw.get_solution_cost(best_solution)
+    print("Greedy Cost :", best_cost)
+    print("Greedy Path", best_solution)
     start_time = time.time()
-    num_restarts = 0
+    improvement_timer = 0
 
     while time.time() - start_time < time_limit:
         # Generate the initial population
-        population = generate_population(tsptw, pop_size)
+        # print("GENERATING ON NEW POPULATION")
+        population = generate_population(pop_size)
+        # print("POPULATION GENERATED")
         # Iterate over the generations
-        for _ in range(num_generations):
+        for i in range(num_generations):
 
+            # print("GENERATION {}".format(i))
             # Select the parents for the next generation
             parents = sorted(population, key=lambda s: fitness(tsptw, s), reverse=True)[
                 : pop_size // 3
@@ -106,7 +112,7 @@ def genetic_algorithm(
             population = parents + offspring
 
             while len(population) < pop_size:
-                population.append(generate_fit_chromosome(tsptw))
+                population.append(generate_fit_chromosome())
 
             # Select the survivors for the next generation : we keep the same population size
             population = selection(
@@ -126,30 +132,25 @@ def genetic_algorithm(
             ):
                 best_solution = population[best_idx]
                 best_cost = tsptw.get_solution_cost(population[best_idx])
-                num_restarts = 0
+                improvement_timer = 0
                 print("BEST SOLUTION FOUND : COST {}".format(best_cost))
             else:
-                num_restarts += 1
-                if num_restarts % 100 == 0:
-                    # print("NO IMPROVEMENT AFTER 100 GENERATIONS, RESTARTING...")
+                improvement_timer += 1
+                if improvement_timer % 10 == 0:
+                    # print("NO IMPROVEMENT AFTER 10 GENERATIONS, RESTARTING...")
                     break
 
     return best_solution
 
 
-def generate_fit_chromosome(tsptw):
+def generate_fit_chromosome():
     return pbs.beam_construct()
 
 
-def generate_population(tsptw, pop_size):
+def generate_population(pop_size):
     population = []
-    for _ in range(pop_size *5):
-        population.append(generate_fit_chromosome(tsptw))
-
-    population = sorted(
-        population, key=lambda s: get_number_of_violations(s, tsptw), reverse=False
-    )[:pop_size]
-
+    for _ in range(pop_size):
+        population.append(generate_fit_chromosome())
     return population
 
 
@@ -232,3 +233,39 @@ def generate_chromosome(tsptw: TSPTW):
     random.shuffle(chromosome)
     chromosome = [0] + chromosome + [0]
     return chromosome
+
+
+def check_time_constraint(tsptw: TSPTW, node1, node2, timer, time_constraints):
+    # Check if the time window of node2 is valid given that node1 was visited at the start of its time window
+    travel_time = tsptw.graph[node1][node2]["weight"]
+    arrival_time = max(timer + travel_time, time_constraints[node2][0])
+    return arrival_time <= time_constraints[node2][1]
+
+
+def greedy_tsp(tsptw: TSPTW, time_constraints):
+
+    nodes = list(range(len(time_constraints)))
+    nodes = sorted(nodes, key=lambda x: time_constraints[x][0])
+
+    # Find the node with the earliest opening time
+    first_node = nodes[0]
+
+    current_time = 0
+    solution = [first_node]
+
+    for node in nodes:
+        if node == first_node:
+            continue
+
+        if check_time_constraint(
+            tsptw, solution[-1], node, current_time, time_constraints
+        ):
+            solution.append(node)
+            current_time = max(
+                current_time + tsptw.graph[solution[-2]][solution[-1]]["weight"],
+                time_constraints[node][0],
+            )
+        else:
+            continue
+    solution.append(0)
+    return solution
