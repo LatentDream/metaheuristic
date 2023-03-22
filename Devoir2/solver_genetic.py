@@ -76,14 +76,17 @@ def genetic_algorithm(
     pop_size,
     time_limit,
 ):
+
+    start_time = time.time()
     time_constraints = tsptw.time_windows
     best_solution = greedy_tsp(tsptw, time_constraints)
     best_cost = tsptw.get_solution_cost(best_solution)
-    print("Greedy Cost :", best_cost)
-    print("Greedy Path", best_solution)
-    start_time = time.time()
-    improvement_timer = 0
+    # print("Greedy Cost :", best_cost)
+    # print("Greedy Path", best_solution)
+    # print(tsptw.verify_solution(best_solution))
+    tsptw.verify_solution(best_solution)
 
+    improvement_timer = 0
     while time.time() - start_time < time_limit:
         # Generate the initial population
         # print("GENERATING ON NEW POPULATION")
@@ -246,7 +249,7 @@ def greedy_tsp(tsptw: TSPTW, time_constraints):
 
     nodes = list(range(len(time_constraints)))
     nodes = sorted(nodes, key=lambda x: time_constraints[x][0])
-
+    print(nodes)
     # Find the node with the earliest opening time
     first_node = nodes[0]
 

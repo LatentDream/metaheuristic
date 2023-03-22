@@ -50,14 +50,20 @@ def solve(tsptw: TSPTW) -> List[int]:
     return variable_neighborhood_search(tsptw)
 
 
-def variable_neighborhood_search(tsptw):
+def variable_neighborhood_search(tsptw: TSPTW):
     start_time = time.time()
     time_limit = 60 * 30
 
+    time_constraints = tsptw.time_windows
+    best_solution = greedy_tsp(tsptw, time_constraints)
+    best_cost = tsptw.get_solution_cost(best_solution)
+    print("Greedy Cost :", best_cost)
+    print("Greedy Path", best_solution)
+
     # Initialize the candidate solution
-    candidate_solution = generate_fit_solution()
     best_solution = candidate_solution
-    best_cost = inf
+    best_cost = tsptw.get_solution_cost(best_solution)
+    candidate_solution = best_solution
 
     # Set the initial neighborhood structure and size
     neighborhood_structure = 1
@@ -75,7 +81,6 @@ def variable_neighborhood_search(tsptw):
 
         # Verify if the new candidate solution is valid
         if tsptw.verify_solution(new_candidate_solution):
-            print("verify")
             # Compute the cost of the new candidate solution
             new_candidate_cost = tsptw.get_solution_cost(new_candidate_solution)
             # Check if the new candidate solution is better than the current one
@@ -182,25 +187,37 @@ def relocate_subsequence(solution, neighborhood_size):
     return new_solution
 
 
-# def generate_random_solution(tsptw):
-#     solution = list(range(1, tsptw.num_nodes))
-#     random.shuffle(solution)
-#     solution = [0] + solution + [0]
-#     return solution
+def check_time_constraint(tsptw: TSPTW, node1, node2, timer, time_constraints):
+    # Check if the time window of node2 is valid given that node1 was visited at the start of its time window
+    travel_time = tsptw.graph[node1][node2]["weight"]
+    arrival_time = max(timer + travel_time, time_constraints[node2][0])
+    return arrival_time <= time_constraints[node2][1]
 
 
-# def get_number_of_violations(solution: List[int], tsptw: TSPTW) -> int:
-#     nb_of_violation = 0
-#     time_step = 0
-#     last_stop = 0
-#     for next_stop in solution[1:]:
-#         edge = (last_stop, next_stop)
-#         time_step += tsptw.graph.edges[edge]["weight"]
-#         time_windows_begening, time_windows_end = tsptw.time_windows[next_stop]
-#         if time_step < time_windows_begening:
-#             waiting_time = time_windows_begening - time_step
-#             time_step += waiting_time
-#         if time_step > time_windows_end:
-#             nb_of_violation += 1
+def greedy_tsp(tsptw: TSPTW, time_constraints):
 
-#     return nb_of_violation
+    nodes = list(range(len(time_constraints)))
+    nodes = sorted(nodes, key=lambda x: time_constraints[x][0])
+
+    # Find the node with the earliest opening time
+    first_node = nodes[0]
+
+    current_time = 0
+    solution = [first_node]
+
+    for node in nodes:
+        if node == first_node:
+            continue
+
+        if check_time_constraint(
+            tsptw, solution[-1], node, current_time, time_constraints
+        ):
+            solution.append(node)
+            current_time = max(
+                current_time + tsptw.graph[solution[-2]][solution[-1]]["weight"],
+                time_constraints[node][0],
+            )
+        else:
+            continue
+    solution.append(0)
+    return solution
