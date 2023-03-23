@@ -55,14 +55,17 @@ def variable_neighborhood_search(tsptw: TSPTW):
     time_limit = 60 * 60
 
     time_constraints = tsptw.time_windows
-    best_solution = greedy_tsp(tsptw, time_constraints)
-    best_cost = tsptw.get_solution_cost(best_solution)
-    print("Greedy Cost :", best_cost)
-    print("Greedy Path", best_solution)
-    print("Greedy is Valid", tsptw.verify_solution(best_solution))
+    greedy_solution = greedy_tsp(tsptw, time_constraints)
+    if tsptw.verify_solution(greedy_solution):
+        best_solution = greedy_solution
+        best_cost = tsptw.get_solution_cost(best_solution)
+        print("Greedy Cost :", best_cost)
+        print("Greedy Path :", best_solution)
+    else:
+        best_solution = generate_fit_solution()
+        best_cost = tsptw.get_solution_cost(best_solution)
 
     # Initialize the candidate solution
-    best_cost = tsptw.get_solution_cost(best_solution)
     candidate_solution = best_solution
 
     # Set the initial neighborhood structure and size

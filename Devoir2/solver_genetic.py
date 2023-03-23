@@ -262,7 +262,7 @@ def greedy_tsp(tsptw: TSPTW, time_constraints):
     # Find the node with the earliest opening time
     first_node = nodes[0]
     solution.append(first_node)
-
+    
     remaining_nodes.remove(first_node)
 
     # Explore the remaining nodes in the order of their opening windows
