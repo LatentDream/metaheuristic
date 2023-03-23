@@ -6,8 +6,8 @@ from copy import deepcopy
 from utils.beam_search import ProbabilisticBeamSearch
 import time
 
-from utils.local_search import get_number_of_violations
-from utils.utils import get_best_soltion, get_score
+from utils.local_search import get_number_of_violations, local_search
+from utils.utils import save_stats_as_fig, get_best_soltion, get_score
 
 
 def solve(tsptw: TSPTW) -> List[int]:
@@ -23,22 +23,20 @@ def solve(tsptw: TSPTW) -> List[int]:
     """
     # Variables
     # nb_of_iter = 100_000    # Stopping criteria 
-    nb_of_iter = 100        # Stopping criteria 
+    nb_of_iter = 500        # Stopping criteria 
     time_limit = 10*60      # Stopping criteria 
     nb_of_ants = 1          # n_of_ants: the number of ants
     l_rate = 0.1            # l_rate: the learning rate for pheromone values
     tau_min = 0.001         # lower limit for the pheromone values
     tau_max = 0.999         # upper limit for the pheromone values
     determinism_rate = 0.2  # rate of determinism in the solution construction
-    nb_of_trials = 1        #  number of trials to be executed for the given problem instance
+    nb_of_trials = 15        #  number of trials to be executed for the given problem instance
     beam_width = 1          # parameters for the beam procedure
     mu = 4.0                # stochastic sampling parameter
     max_children = 100      # stochastic sampling parameter #! NOT USED 
     n_samples = 10          # stochastic sampling parameter #! NOT USED 
     sample_percent = 100    # stochastic sampling parameter #! NOT USED 
-    do_local_search = False # If the local search heuristic is executed
-
-    tic = time.time()
+    do_local_search = True  # If the local search heuristic is executed
     
     ant = Ant(tsptw, l_rate=l_rate, tau_max=tau_max, tau_min=tau_min)
     pbs = ProbabilisticBeamSearch(tsptw, ant, beam_width, determinism_rate, max_children, mu, n_samples, sample_percent)
@@ -65,8 +63,6 @@ def solve(tsptw: TSPTW) -> List[int]:
             ant.resetUniformPheromoneValues()
             bs_update = False
             restart = False
-            time_local_search = 0.0
-            solution_evaluation = 0
 
             ### algorithm: iterates main loop until a maximum CPU time limit is reached
             trial_tic = time.time()
@@ -79,17 +75,14 @@ def solve(tsptw: TSPTW) -> List[int]:
                     break
 
                 iteration_best_solution = None
-                avg_cost = 0.0
-                avg_violation = 0.0
-
 
                 ### Probabilistic beam search algorithm is executed. This produces the iteration-best solution Pib
                 for i in range(nb_of_ants):
                     #?  Probabilistic beam search: This part is the algo #1 of the paper
                     iteration_best_solution = pbs.beam_construct()
                     ### Then subject to the application of local search
-                    while False and do_local_search:
-                        new_solution = local_search(iteration_best_solution)
+                    if do_local_search:
+                        new_solution = local_search(iteration_best_solution, tsptw)
                         iteration_best_solution = get_best_soltion(new_solution, iteration_best_solution, tsptw)
                 
                 
@@ -114,7 +107,7 @@ def solve(tsptw: TSPTW) -> List[int]:
                 
                 ### A new value for the convergence factor cf is computed
                 cf = ant.computeConvergenceFactor()
-                
+
                 
                 ### Depending on cf and bs_update, a decision on whether to restart the algorithm or not is made
                 if bs_update and cf > 0.99:
@@ -131,7 +124,7 @@ def solve(tsptw: TSPTW) -> List[int]:
                 progress_bar.update(1)
     
     print(f"results: {zip(results, violations)} \n")
-
+    save_stats_as_fig(results, violations, times_best_found, iter_best_found)
     print(f"Number of violation: {get_number_of_violations(best_soltion, tsptw)}")
     print(f"Feasible solution: {tsptw.verify_solution(best_soltion)}")
     return best_soltion
