@@ -54,9 +54,10 @@ def variable_neighborhood_search(tsptw: TSPTW):
     start_time = time.time()
     time_limit = 60 * 60
 
-    time_constraints = tsptw.time_windows
-    greedy_solution = greedy_tsp(tsptw, time_constraints)
-    if tsptw.verify_solution(greedy_solution):
+    greedy_solution = greedy_tsp(tsptw)
+
+    if greedy_solution and tsptw.verify_solution(greedy_solution):
+        tsptw.verify_solution(greedy_solution)
         best_solution = greedy_solution
         best_cost = tsptw.get_solution_cost(best_solution)
         print("Greedy Cost :", best_cost)
@@ -202,7 +203,8 @@ def check_time_constraint(tsptw: TSPTW, node1, node2, timer, time_constraints):
     return arrival_time <= time_constraints[node2][1]
 
 
-def greedy_tsp(tsptw: TSPTW, time_constraints):
+def greedy_tsp(tsptw: TSPTW):
+    time_constraints = tsptw.time_windows
     nodes = list(range(tsptw.num_nodes))
     nodes = sorted(nodes, key=lambda x: time_constraints[x][0])
 
@@ -228,23 +230,13 @@ def greedy_tsp(tsptw: TSPTW, time_constraints):
                 break
 
         if next_node is None:
-            # If no remaining node satisfies the time constraint, backtrack to the first node
-            if check_time_constraint(
-                tsptw, first_node, solution[-1], current_time, time_constraints
-            ):
-                solution.append(first_node)
-
-                current_time = time_constraints[first_node][0] + calculate_distance(
-                    tsptw, solution[-2], first_node
-                )
-            else:
-                # No feasible solutions to the instance
-                return None
+            # If no remaining node satisfies the time constraint, return None
+            return None
         else:
             solution.append(next_node)
             remaining_nodes.remove(next_node)
             current_time = max(
-                current_time + calculate_distance(tsptw, solution[-1], next_node),
+                current_time + calculate_distance(tsptw, solution[-2], next_node),
                 time_constraints[next_node][0],
             )
 

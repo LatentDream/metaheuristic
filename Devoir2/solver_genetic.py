@@ -78,8 +78,7 @@ def genetic_algorithm(
 ):
 
     start_time = time.time()
-    time_constraints = tsptw.time_windows
-    best_solution = greedy_tsp(tsptw, time_constraints)
+    best_solution = greedy_tsp(tsptw)
     print("Greedy Path", best_solution)
     print(len(best_solution))
     best_cost = tsptw.get_solution_cost(best_solution)
@@ -245,13 +244,12 @@ def check_time_constraint(tsptw: TSPTW, node1, node2, timer, time_constraints):
     travel_time = tsptw.graph[node1][node2]["weight"]
     arrival_time = max(timer + travel_time, time_constraints[node2][0])
 
-    if node2 == 0:
-        return False
-
     return arrival_time <= time_constraints[node2][1]
 
 
-def greedy_tsp(tsptw: TSPTW, time_constraints):
+def greedy_tsp(tsptw: TSPTW):
+    time_constraints = tsptw.time_windows
+
     nodes = list(range(tsptw.num_nodes))
     nodes = sorted(nodes, key=lambda x: time_constraints[x][0])
 
@@ -262,12 +260,11 @@ def greedy_tsp(tsptw: TSPTW, time_constraints):
     # Find the node with the earliest opening time
     first_node = nodes[0]
     solution.append(first_node)
-    
+
     remaining_nodes.remove(first_node)
 
     # Explore the remaining nodes in the order of their opening windows
-    while remaining_nodes:
-
+    while len(remaining_nodes) > 1:
         next_node = None
         for node in sorted(remaining_nodes, key=lambda x: time_constraints[x][0]):
             if check_time_constraint(
@@ -282,9 +279,8 @@ def greedy_tsp(tsptw: TSPTW, time_constraints):
                 tsptw, first_node, solution[-1], current_time, time_constraints
             ):
                 solution.append(first_node)
-
                 current_time = time_constraints[first_node][0] + calculate_distance(
-                    tsptw, solution[-2], first_node
+                    tsptw, solution[-1], first_node
                 )
             else:
                 # No feasible solutions to the instance
@@ -297,7 +293,16 @@ def greedy_tsp(tsptw: TSPTW, time_constraints):
                 time_constraints[next_node][0],
             )
 
-    solution.append(0)
+    # Add the last node and then the first node
+    last_node = remaining_nodes.pop()
+    if check_time_constraint(
+        tsptw, solution[-1], last_node, current_time, time_constraints
+    ):
+        solution.append(last_node)
+        solution.append(first_node)
+    else:
+        solution.append(first_node)
+
     return solution
 
 
