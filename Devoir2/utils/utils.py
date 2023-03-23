@@ -1,5 +1,6 @@
 from copy import deepcopy
 from typing import List
+import matplotlib.pyplot as plt
 
 from tsptw import TSPTW
 
@@ -27,13 +28,32 @@ def get_best_soltion(solution1, solution2, tsptw) -> List[int]:
         return deepcopy(solution2)
     if solution2 == None:
         return deepcopy(solution1)
+    if (v_1 := get_number_of_violations(solution1, tsptw)) != 0 and (v_2:=get_number_of_violations(solution2, tsptw)) != 0:
+        if v_1 < v_2:
+            return solution1
+        else:
+            return solution2
     if get_number_of_violations(solution1, tsptw) == 0 and get_number_of_violations(solution2, tsptw) > 0:
         return deepcopy(solution1)
     if get_number_of_violations(solution1, tsptw) > 0 and get_number_of_violations(solution2, tsptw) == 0:
-        return deepcopy(solution2)
-    return deepcopy(solution1) if get_score(solution1, tsptw) < get_score(solution2, tsptw) else deepcopy(solution2)
+        return deepcopy(solution2)    
+    if get_number_of_violations(solution1, tsptw) == 0 and get_number_of_violations(solution2, tsptw) == 0:
+        return deepcopy(solution1) if get_score(solution1, tsptw) < get_score(solution2, tsptw) else deepcopy(solution2)
+    return 
 
 
 def get_score(solution: List[int], tsptw: TSPTW) -> int:   
     # ? Change for an estimation ? 
     return tsptw.get_solution_cost(solution)
+
+
+def save_stats_as_fig(results, violations, times_best, iter_best):
+    
+    x = [i for i in range(len(results))]
+    # plt.plot(x, results, label = "results")
+    plt.plot(x, violations, label = "Number of violations")
+    plt.plot(x, times_best, label = "Time for one iteration")
+    plt.plot(x, iter_best, label = "Trial number")
+    plt.legend()
+    plt.savefig(f"stats.png", format="PNG")
+    plt.close()
