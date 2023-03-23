@@ -80,12 +80,11 @@ def genetic_algorithm(
     start_time = time.time()
     time_constraints = tsptw.time_windows
     best_solution = greedy_tsp(tsptw, time_constraints)
-    # print("Greedy Path", best_solution)
-    # print(len(best_solution))
-    # best_cost = tsptw.get_solution_cost(best_solution)
-    # print("Greedy Cost :", best_cost)
-
-    # print(tsptw.verify_solution(best_solution))
+    print("Greedy Path", best_solution)
+    print(len(best_solution))
+    best_cost = tsptw.get_solution_cost(best_solution)
+    print("Greedy Cost :", best_cost)
+    print("Greedy is Valid : ", tsptw.verify_solution(best_solution))
     tsptw.verify_solution(best_solution)
 
     improvement_timer = 0
@@ -291,10 +290,7 @@ def greedy_tsp(tsptw: TSPTW, time_constraints):
                 # No feasible solutions to the instance
                 return None
         else:
-            # print(remaining_nodes)
-            # print("add", next_node)
             solution.append(next_node)
-            # print(solution)
             remaining_nodes.remove(next_node)
             current_time = max(
                 current_time + calculate_distance(tsptw, solution[-1], next_node),

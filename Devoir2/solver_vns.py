@@ -52,16 +52,16 @@ def solve(tsptw: TSPTW) -> List[int]:
 
 def variable_neighborhood_search(tsptw: TSPTW):
     start_time = time.time()
-    time_limit = 60 * 30
+    time_limit = 60 * 60
 
     time_constraints = tsptw.time_windows
     best_solution = greedy_tsp(tsptw, time_constraints)
     best_cost = tsptw.get_solution_cost(best_solution)
     print("Greedy Cost :", best_cost)
     print("Greedy Path", best_solution)
+    print("Greedy is Valid", tsptw.verify_solution(best_solution))
 
     # Initialize the candidate solution
-    best_solution = candidate_solution
     best_cost = tsptw.get_solution_cost(best_solution)
     candidate_solution = best_solution
 
@@ -188,36 +188,66 @@ def relocate_subsequence(solution, neighborhood_size):
 
 
 def check_time_constraint(tsptw: TSPTW, node1, node2, timer, time_constraints):
+
     # Check if the time window of node2 is valid given that node1 was visited at the start of its time window
     travel_time = tsptw.graph[node1][node2]["weight"]
     arrival_time = max(timer + travel_time, time_constraints[node2][0])
+
+    if node2 == 0:
+        return False
+
     return arrival_time <= time_constraints[node2][1]
 
 
 def greedy_tsp(tsptw: TSPTW, time_constraints):
-
-    nodes = list(range(len(time_constraints)))
+    nodes = list(range(tsptw.num_nodes))
     nodes = sorted(nodes, key=lambda x: time_constraints[x][0])
+
+    current_time = 0
+    solution = []
+    remaining_nodes = set(nodes)
 
     # Find the node with the earliest opening time
     first_node = nodes[0]
+    solution.append(first_node)
 
-    current_time = 0
-    solution = [first_node]
+    remaining_nodes.remove(first_node)
 
-    for node in nodes:
-        if node == first_node:
-            continue
+    # Explore the remaining nodes in the order of their opening windows
+    while remaining_nodes:
 
-        if check_time_constraint(
-            tsptw, solution[-1], node, current_time, time_constraints
-        ):
-            solution.append(node)
-            current_time = max(
-                current_time + tsptw.graph[solution[-2]][solution[-1]]["weight"],
-                time_constraints[node][0],
-            )
+        next_node = None
+        for node in sorted(remaining_nodes, key=lambda x: time_constraints[x][0]):
+            if check_time_constraint(
+                tsptw, solution[-1], node, current_time, time_constraints
+            ):
+                next_node = node
+                break
+
+        if next_node is None:
+            # If no remaining node satisfies the time constraint, backtrack to the first node
+            if check_time_constraint(
+                tsptw, first_node, solution[-1], current_time, time_constraints
+            ):
+                solution.append(first_node)
+
+                current_time = time_constraints[first_node][0] + calculate_distance(
+                    tsptw, solution[-2], first_node
+                )
+            else:
+                # No feasible solutions to the instance
+                return None
         else:
-            continue
+            solution.append(next_node)
+            remaining_nodes.remove(next_node)
+            current_time = max(
+                current_time + calculate_distance(tsptw, solution[-1], next_node),
+                time_constraints[next_node][0],
+            )
+
     solution.append(0)
     return solution
+
+
+def calculate_distance(tsptw, node1, node2):
+    return tsptw.graph[node1][node2]["weight"]
