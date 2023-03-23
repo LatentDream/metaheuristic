@@ -2,7 +2,6 @@ from typing import List, Tuple
 from tqdm import tqdm
 from tsptw import TSPTW
 from utils.ant import Ant
-from copy import deepcopy
 from utils.beam_search import ProbabilisticBeamSearch
 import time
 
@@ -23,14 +22,14 @@ def solve(tsptw: TSPTW) -> List[int]:
     """
     # Variables
     # nb_of_iter = 100_000    # Stopping criteria 
-    nb_of_iter = 500        # Stopping criteria 
+    nb_of_iter = 250        # Stopping criteria 
     time_limit = 10*60      # Stopping criteria 
-    nb_of_ants = 1          # n_of_ants: the number of ants
+    nb_of_ants = 25          # n_of_ants: the number of ants
     l_rate = 0.1            # l_rate: the learning rate for pheromone values
     tau_min = 0.001         # lower limit for the pheromone values
     tau_max = 0.999         # upper limit for the pheromone values
     determinism_rate = 0.2  # rate of determinism in the solution construction
-    nb_of_trials = 15        #  number of trials to be executed for the given problem instance
+    nb_of_trials = 2        #  number of trials to be executed for the given problem instance
     beam_width = 1          # parameters for the beam procedure
     mu = 4.0                # stochastic sampling parameter
     max_children = 100      # stochastic sampling parameter #! NOT USED 
