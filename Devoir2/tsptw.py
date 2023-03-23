@@ -124,7 +124,6 @@ class TSPTW:
                 expected_solution_nodes.remove(node)
         if expected_solution_nodes:
             return False
-
         # Time window constraints are respected
         total_time = 0
         for i in range(len(solution) - 1):
@@ -134,7 +133,7 @@ class TSPTW:
             total_time += self.graph[current_node][next_node]["weight"]
             total_time = max(total_time, lower_bound)
             if total_time > upper_bound:
-                # print("current_node", i)
+                # print("CONFLICt current_node", i)
                 # print("next", i + 1)
                 return False
 

@@ -80,12 +80,12 @@ def genetic_algorithm(
     start_time = time.time()
     time_constraints = tsptw.time_windows
     best_solution = greedy_tsp(tsptw, time_constraints)
-    print("Greedy Path", best_solution)
-    print(len(best_solution))
-    best_cost = tsptw.get_solution_cost(best_solution)
-    print("Greedy Cost :", best_cost)
+    # print("Greedy Path", best_solution)
+    # print(len(best_solution))
+    # best_cost = tsptw.get_solution_cost(best_solution)
+    # print("Greedy Cost :", best_cost)
 
-    print(tsptw.verify_solution(best_solution))
+    # print(tsptw.verify_solution(best_solution))
     tsptw.verify_solution(best_solution)
 
     improvement_timer = 0
@@ -263,15 +263,12 @@ def greedy_tsp(tsptw: TSPTW, time_constraints):
     # Find the node with the earliest opening time
     first_node = nodes[0]
     solution.append(first_node)
-    current_time = time_constraints[first_node][0] + calculate_distance(
-        tsptw, 0, first_node
-    )
 
-    print(current_time)
     remaining_nodes.remove(first_node)
 
     # Explore the remaining nodes in the order of their opening windows
     while remaining_nodes:
+
         next_node = None
         for node in sorted(remaining_nodes, key=lambda x: time_constraints[x][0]):
             if check_time_constraint(
@@ -294,17 +291,17 @@ def greedy_tsp(tsptw: TSPTW, time_constraints):
                 # No feasible solutions to the instance
                 return None
         else:
-            print("added", next_node)
-            print(solution)
+            # print(remaining_nodes)
+            # print("add", next_node)
             solution.append(next_node)
+            # print(solution)
             remaining_nodes.remove(next_node)
             current_time = max(
-                current_time + calculate_distance(tsptw, solution[-2], next_node),
+                current_time + calculate_distance(tsptw, solution[-1], next_node),
                 time_constraints[next_node][0],
             )
 
     solution.append(0)
-
     return solution
 
 
