@@ -1,6 +1,6 @@
 from copy import deepcopy
 from typing import List
-
+import numpy as np
 
 class BeamNode:
 
@@ -8,11 +8,10 @@ class BeamNode:
         self.id = node_id
         self.pheromone = deepcopy(pheromone)
         self.pheromone[:, self.id] = 0. # C := C\<P,j>
-        self.children = set()
+        self.children = dict()
 
 
-
-    def extract_solution(self) -> list:
+    def extract_solution(self) -> List[List[int]]:
         def recursive_solution_builder(beam_node: BeamNode, solution: List[int], solutions_found: List[List[int]]):
             solution.append(beam_node.id)
             if len(beam_node.children) == 0:
@@ -25,3 +24,21 @@ class BeamNode:
         recursive_solution_builder(self, [], solutions_found)
         return solutions_found
 
+    
+    def extract_best_solution(self):
+        potential_solutions = self.extract_solution()
+        potential_solutions_cost = [self.tsptw.get_solution_cost(solution) for solution in potential_solutions]
+        return potential_solutions[np.argmin(potential_solutions_cost)] 
+        
+
+    def create_child(self, child_id: int):
+        child = BeamNode(child_id, self.pheromone)
+        return child
+
+    def add_children(self, child):
+        self.children[child.id] = child
+        return child
+
+    def create_and_add_child(self, child_id: int): 
+        return self.add_children(self.create_child(child_id))
+        
