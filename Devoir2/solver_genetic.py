@@ -266,6 +266,8 @@ def greedy_tsp(tsptw: TSPTW, time_constraints):
     current_time = time_constraints[first_node][0] + calculate_distance(
         tsptw, 0, first_node
     )
+
+    print(current_time)
     remaining_nodes.remove(first_node)
 
     # Explore the remaining nodes in the order of their opening windows
@@ -284,6 +286,7 @@ def greedy_tsp(tsptw: TSPTW, time_constraints):
                 tsptw, first_node, solution[-1], current_time, time_constraints
             ):
                 solution.append(first_node)
+
                 current_time = time_constraints[first_node][0] + calculate_distance(
                     tsptw, solution[-2], first_node
                 )
@@ -291,6 +294,8 @@ def greedy_tsp(tsptw: TSPTW, time_constraints):
                 # No feasible solutions to the instance
                 return None
         else:
+            print("added", next_node)
+            print(solution)
             solution.append(next_node)
             remaining_nodes.remove(next_node)
             current_time = max(
