@@ -13,5 +13,5 @@ def list_to_grid(liste, rows, cols):
     return grid
 
 
-def visualize(e: EternityPuzzle, solution):
-    e.display_solution(solution, "visualization_solution.png")
+def visualize(e: EternityPuzzle, solution, name="visualisation"):
+    e.display_solution(solution, name)
