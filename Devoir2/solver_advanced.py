@@ -23,8 +23,8 @@ def solve(tsptw: TSPTW) -> List[int]:
     # Variables
     # nb_of_iter = 100_000    # Stopping criteria 
     nb_of_iter = 1050        # Stopping criteria 
-    time_limit = 30*60      # Stopping criteria 
-    nb_of_ants = 20          # n_of_ants: the number of ants
+    time_limit = 20*60      # Stopping criteria 
+    nb_of_ants = 1          # n_of_ants: the number of ants
     l_rate = 0.1            # l_rate: the learning rate for pheromone values
     tau_min = 0.001         # lower limit for the pheromone values
     tau_max = 0.999         # upper limit for the pheromone values
