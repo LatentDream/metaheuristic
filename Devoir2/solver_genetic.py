@@ -22,7 +22,7 @@ def solve(tsptw: TSPTW) -> List[int]:
     """
 
     mutation_rate = 0.02
-    pop_size = tsptw.num_nodes * 3
+    pop_size = tsptw.num_nodes
     tournament_size = ceil(pop_size / 10)
     tournament_accepted = ceil(tournament_size / 5)
     num_generations = 100
@@ -78,6 +78,7 @@ def genetic_algorithm(
     start_time = time.time()
     best_valid_solution = None
 
+    # Calculate a good initial best_solution
     greedy_solution = greedy_tsp(tsptw)
     if greedy_solution and tsptw.verify_solution(greedy_solution):
         best_valid_solution = greedy_solution
