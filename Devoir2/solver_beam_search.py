@@ -22,11 +22,11 @@ def solve(tsptw: TSPTW) -> List[int]:
     """
     # Variables
     # nb_of_iter = 100_000   # stopping criteria 
-    nb_of_iter = 1           # stopping criteria 
-    determinism_rate = 0.01  # rate of determinism in the solution construction
+    nb_of_iter = 2           # stopping criteria 
+    determinism_rate = 0.1  # rate of determinism in the solution construction
     nb_of_trials = 10        # number of trials to be executed for the given problem instance
-    beam_width = 50          # parameters for the beam procedure
-    mu = 100.0               # stochastic sampling parameter
+    beam_width = 10          # parameters for the beam procedure
+    mu = 5.0               # stochastic sampling parameter
     
     pbs = ProbabilisticBeamSearch(tsptw, None, beam_width, determinism_rate, mu)
 

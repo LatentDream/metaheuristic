@@ -21,8 +21,7 @@ def solve(tsptw: TSPTW) -> List[int]:
             as the tour starts from the depot
     """
     # Variables
-    # nb_of_iter = 100_000    # Stopping criteria 
-    nb_of_iter = int(1050 / 4)        # Stopping criteria 
+    nb_of_iter = 1000       # Stopping criteria 
     time_limit = 20*60      # Stopping criteria 
     nb_of_ants = 1          # n_of_ants: the number of ants
     l_rate = 0.1            # l_rate: the learning rate for pheromone values
@@ -30,7 +29,7 @@ def solve(tsptw: TSPTW) -> List[int]:
     tau_max = 0.999         # upper limit for the pheromone values
     determinism_rate = 0.1  # rate of determinism in the solution construction
     nb_of_trials = 4        #  number of trials to be executed for the given problem instance
-    beam_width = 10          # parameters for the beam procedure
+    beam_width = 10         # parameters for the beam procedure
     mu = 5.0                # stochastic sampling parameter
     do_local_search = True  # If the local search heuristic is executed
     

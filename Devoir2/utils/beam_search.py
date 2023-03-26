@@ -68,7 +68,6 @@ class ProbabilisticBeamSearch():
             # Delete the root since we already consider it in beam_root
             beam_parent = beam_root
             del best_solution[0]
-            # TODO: Add the max_children feature
             for child_id in best_solution:
                 if child_id in beam_parent.children.keys():
                     beam_parent = beam_parent.children[child_id]
