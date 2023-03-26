@@ -68,56 +68,6 @@ def do_swap(solution: List[int], k: int):
     solution[k], solution[k+1] = solution[k+1], solution[k]
     return solution
 
-def swap(solution: List[int], k: int, tsptw: TSPTW) -> List[int]:
-    """
-    # Algo 4 to speed up calcul of f and delta
-    P : tour
-    k : position in the tour
-    c(a_i): cost from the travel
-    tsptw.time_window : [e_i, l_i]
-    D_p_k = max(A_p_k, e_p_k)
-    A_p_k = D_p_k + c(a_p_k-1,p_k): arrival time at customer p_k
-    
-    minimize f(P) = sum(c)
-    subject to delta(P) = sum(w(p_k)) = 0
-
-    w(p_k) = 
-    """
-    #! This is overkill for now, start by testing the do_swap and recalcul the hole thing after
-    f_old = tsptw.get_solution_cost(solution)
-    delta_old = get_number_of_violations(solution, tsptw)
-    cost = delta_c(solution, k, tsptw)
-
-    # if A_p_k > l_p_k then delta_old := delta_old - 1
-    A_p_k = get_solution_cost_up_to_k(solution, k, tsptw)
-    if A_p_k > tsptw.time_windows[k][0]:
-        delta_old -= 1
-    # if A_p_k+1 > l_p_k+1 then delta_old := delta_old - 1
-    A_p_k_1 = get_solution_cost_up_to_k(solution, k+1, tsptw)
-    if A_p_k_1 > tsptw.time_windows[k+1][0]:
-        delta_old -= 1
-    # if A_p_k+2 > l_p_k+2 then delta_old := delta_old - 1
-    A_p_k_2 = get_solution_cost_up_to_k(solution, k+2, tsptw)
-    if A_p_k_2 > tsptw.time_windows[k+2][0]:
-        delta_old -= 1
-
-    # A_p_k = max(A_p_k-1 + c(p_k-1, p_k+1), e_p_k+1)
-    A_p_k = max(get_solution_cost_up_to_k(solution, k-1, tsptw) + tsptw.graph[k-1][k+1]["weight"], tsptw.time_windows[k+1][0])
-    # A_p_k+1 = max(A_p_k + c(p_k+1, p_k-1), e_p_k)
-    A_p_k_1 = max(get_solution_cost_up_to_k(solution, k, tsptw) + tsptw.graph[k+1][k-1]["weight"], tsptw.time_windows[k][0])
-    # A_p_k+2 = max(A_p_k+1 + c(p_k, p_k+2), e_p_k+2)
-    A_p_k_2 = max(get_solution_cost_up_to_k(solution, k+1, tsptw) + tsptw.graph[k][k+2]["weight"], tsptw.time_windows[k+2][0])
-
-
-    # if A_p_k > l_p_k+1 then delta_old := delta_old - 1
-    if A_p_k > tsptw.time_windows[k+1][0]: delta_old -= 1
-    # if A_p_k+1 > l_p_k then delta_old := delta_old - 1
-    if A_p_k_1 > tsptw.time_windows[k][0]: delta_old -= 1
-    # if A_p_k > l_p_k+2 then delta_old := delta_old - 1
-    if A_p_k > tsptw.time_windows[k+2][0]: delta_old -= 1
-
-    raise Exception(f"{swap.__name__} is not implemented")
-
 
 def delta_c(solution: List[int], k: int, tsptw: TSPTW):
     cost = sum([tsptw.graph.edges[(solution[idx], solution[idx+1])]["weight"] for idx in range(k, tsptw.num_nodes-1)])
