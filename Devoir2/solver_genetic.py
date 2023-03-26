@@ -21,24 +21,15 @@ def solve(tsptw: TSPTW) -> List[int]:
             as the tour starts from the depot
     """
 
-    mutation_rate = 0.15
+    time_limit = 30 * 60
+
+    mutation_rate = 0.1
     pop_size = 300  # min(ceil(tsptw.num_nodes) , 50)  150 is good
-    tournament_size = ceil(pop_size / 3)
-    tournament_accepted = ceil(tournament_size / 4)
+    tournament_size = ceil(pop_size / 20)
+    tournament_accepted = ceil(tournament_size / 5)
     num_generations = 2000
     no_progress_generations = 200
-    time_limit = 10
-    max_m_crossover = tsptw.num_nodes // 2
-
-    l_rate = 0.1  # l_rate: the learning rate for pheromone values
-    tau_min = 0.001  # lower limit for the pheromone values
-    tau_max = 0.999  # upper limit for the pheromone values
-    determinism_rate = 0.2  # rate of determinism in the solution construction
-    beam_width = 1  # parameters for the beam procedure
-    mu = 4.0  # stochastic sampling parameter
-    max_children = 100  # stochastic sampling parameter
-    n_samples = 10  # stochastic sampling parameter
-    sample_percent = 100  # stochastic sampling parameter
+    max_m_crossover = 10
 
     global ant
     ant = Ant(tsptw)
@@ -81,6 +72,7 @@ def genetic_algorithm(
         best_valid_solution = greedy_solution
         best_solution = best_valid_solution
         best_fitness = fitness(tsptw, best_solution)
+        print(best_fitness)
         best_cost = tsptw.get_solution_cost(best_solution)
         print("Greedy solution cost :", best_cost)
         print("Greedy solution path :", best_solution)
@@ -99,13 +91,13 @@ def genetic_algorithm(
         for _ in range(num_generations):
 
             # The parents selected for the next generation are the whole population
-            parents = population
+
             # Create the offspring for the next generation
             offspring = []
-            for j in range(len(parents) // 2):
+            for j in range(len(population) // 2):
 
-                parent1 = parents[j]
-                parent2 = parents[len(parents) - j - 1]
+                parent1 = population[j]
+                parent2 = population[len(population) - j - 1]
 
                 # Select the m value for m-point-crossover
                 if tsptw.num_nodes <= 10:
@@ -122,8 +114,6 @@ def genetic_algorithm(
                 child2 = mutation(child2, mutation_rate)
                 offspring.append(child1)
                 offspring.append(child2)
-
-            population = parents + offspring
 
             # Select the survivors for the next generation : we keep the same population size
             population = selection(
@@ -163,9 +153,6 @@ def genetic_algorithm(
 
     # If a valid solution has been found
     if best_valid_solution:
-        print(
-            "Number of violations", get_number_of_violations(best_valid_solution, tsptw)
-        )
         print("Cost", tsptw.get_solution_cost(best_valid_solution))
         return best_valid_solution
     # If no valid solution has been found
@@ -192,9 +179,9 @@ def get_number_of_violations(solution: List[int], tsptw: TSPTW) -> int:
     for next_stop in solution[1:]:
         edge = (last_stop, next_stop)
         time_step += tsptw.graph.edges[edge]["weight"]
-        time_windows_begening, time_windows_end = tsptw.time_windows[next_stop]
-        if time_step < time_windows_begening:
-            waiting_time = time_windows_begening - time_step
+        time_windows_begin, time_windows_end = tsptw.time_windows[next_stop]
+        if time_step < time_windows_begin:
+            waiting_time = time_windows_begin - time_step
             time_step += waiting_time
         if time_step > time_windows_end:
             nb_of_violation += 1
