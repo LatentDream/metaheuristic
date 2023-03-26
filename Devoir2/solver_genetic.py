@@ -41,19 +41,10 @@ def solve(tsptw: TSPTW) -> List[int]:
     sample_percent = 100  # stochastic sampling parameter
 
     global ant
-    ant = Ant(tsptw, l_rate=l_rate, tau_max=tau_max, tau_min=tau_min)
+    ant = Ant(tsptw)
 
     global pbs
-    pbs = ProbabilisticBeamSearch(
-        tsptw,
-        ant,
-        beam_width,
-        determinism_rate,
-        max_children,
-        mu,
-        n_samples,
-        sample_percent,
-    )
+    pbs = ProbabilisticBeamSearch(tsptw, ant, mu=1)
 
     return genetic_algorithm(
         tsptw,
