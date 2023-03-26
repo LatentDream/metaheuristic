@@ -3,7 +3,7 @@ from tsptw import TSPTW
 import time
 import random
 import numpy as np
-from math import ceil, inf, floor
+from math import ceil, floor
 import random
 from utils.ant import Ant
 from utils.beam_search import ProbabilisticBeamSearch
@@ -24,7 +24,7 @@ def solve(tsptw: TSPTW) -> List[int]:
     time_limit = 30 * 60
 
     mutation_rate = 0.1
-    pop_size = 300  # min(ceil(tsptw.num_nodes) , 50)  150 is good
+    pop_size = 300
     tournament_size = ceil(pop_size / 20)
     tournament_accepted = ceil(tournament_size / 5)
     num_generations = 1000
