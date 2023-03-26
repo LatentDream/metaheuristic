@@ -4,6 +4,7 @@ import solver_advanced
 import solver_genetic
 import solver_vns
 import solver_beam_naive
+import solver_beam_search
 import time
 from tsptw import TSPTW
 
@@ -45,12 +46,15 @@ if __name__ == "__main__":
     elif args.agent == "vns":
         # VNS algorithm
         solution = solver_vns.solve(tsptw)
-    elif args.agent == "beam":
+    elif args.agent == "beam_naive":
         # Simple beam search
         solution = solver_beam_naive.solve(tsptw)
     elif args.agent == "advanced":
         # Your nice agent
         solution = solver_advanced.solve(tsptw)
+    elif args.agent == "beam_search":
+        # More advance beam search
+        solution = solver_beam_search.solve(tsptw)
     else:
         raise Exception("This agent does not exist")
 

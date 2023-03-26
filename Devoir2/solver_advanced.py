@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List
 from tqdm import tqdm
 from tsptw import TSPTW
 from utils.ant import Ant
@@ -22,7 +22,7 @@ def solve(tsptw: TSPTW) -> List[int]:
     """
     # Variables
     # nb_of_iter = 100_000    # Stopping criteria 
-    nb_of_iter = 1050        # Stopping criteria 
+    nb_of_iter = int(1050 / 4)        # Stopping criteria 
     time_limit = 20*60      # Stopping criteria 
     nb_of_ants = 1          # n_of_ants: the number of ants
     l_rate = 0.1            # l_rate: the learning rate for pheromone values
@@ -32,13 +32,10 @@ def solve(tsptw: TSPTW) -> List[int]:
     nb_of_trials = 4        #  number of trials to be executed for the given problem instance
     beam_width = 10          # parameters for the beam procedure
     mu = 5.0                # stochastic sampling parameter
-    max_children = 100      # stochastic sampling parameter #! NOT USED 
-    n_samples = 5           # stochastic sampling parameter
-    sample_percent = 100    # stochastic sampling parameter #! NOT USED 
     do_local_search = True  # If the local search heuristic is executed
     
     ant = Ant(tsptw, l_rate=l_rate, tau_max=tau_max, tau_min=tau_min)
-    pbs = ProbabilisticBeamSearch(tsptw, ant, beam_width, determinism_rate, max_children, mu, n_samples, sample_percent)
+    pbs = ProbabilisticBeamSearch(tsptw, ant, beam_width, determinism_rate, mu)
 
     # To collec statistics
     best_solution = None
@@ -51,6 +48,7 @@ def solve(tsptw: TSPTW) -> List[int]:
     best_so_far_solution = None
     restart_best_solution = None
     iteration_best_solution = None
+    best_soltion = None
 
     ### For each trial for a number of trial
     with tqdm(total=nb_of_iter*nb_of_trials) as progress_bar:

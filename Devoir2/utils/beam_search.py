@@ -10,29 +10,23 @@ class ProbabilisticBeamSearch():
 
     def __init__(self, 
                  tsptw: TSPTW, 
-                 ant: Ant, 
+                 ant: Ant = None, 
                  beam_width: int = 1, 
                  determinism_rate: float = 0.9, 
-                 max_children: int = 100, 
-                 mu: float = 0.2, 
-                 n_samples: int = 10, 
-                 sample_percent: int = 100):
+                 mu: float = 0.2):
         assert int(beam_width) > 0, "beam_width must be greater than 0"
         assert mu >= 1, "mu must be >= 1"
         self.tsptw: TSPTW = tsptw
         self.ant: Ant = ant
         self.beam_width = beam_width  # k_bw
         self.determinism_rate = determinism_rate
-        self.max_children = max_children #! NOT USED 
         self.mu_k_bw = int(beam_width * mu)
-        self.n_samples  = n_samples #! NOT USED 
-        self.sample_rate = int((sample_percent * (tsptw.num_nodes - 1) / 100.0) + 0.5) + 1 #! NOT USED  
 
 
     def beam_construct(self) -> List[int]:
         # Init param for the search
         depot_id = 0
-        pheromone = self.ant.pheromone
+        pheromone = self.ant.pheromone if self.ant else np.ones((self.tsptw.num_nodes, self.tsptw.num_nodes))
         beam_root = BeamNode(depot_id, pheromone)
         self.__random_define_lambda()
         number_of_children_not_in_solution = self.tsptw.num_nodes - 1  # C := C(B_t) 
@@ -142,22 +136,24 @@ class ProbabilisticBeamSearch():
     def __heuristic_benefit_of_visiting_customer_attributes(self) -> Tuple[np.ndarray[np.floating], np.ndarray[np.floating], np.ndarray[np.floating]]:
         """ Return standardize c, l, and e from equation 4 """
         if not hasattr(self, "travel_cost") or not hasattr(self, "lastest_service_time") or not hasattr(self, "earliest_service_time"):
-            self.travel_cost = np.zeros(self.ant.pheromone.shape, float)
+            n = self.tsptw.num_nodes
+            shape = (n, n)
+            self.travel_cost = np.zeros(shape, float)
             standardizer = s if (s:=self.tsptw.distance_max - self.tsptw.distance_min) > 0 else 1
-            for i in range(self.ant.n):
-                for j in range(self.ant.n):
+            for i in range(n):
+                for j in range(n):
                     self.travel_cost[i][j] = (self.tsptw.distance_max - self.tsptw.graph.edges[(i,j)]['weight']) / standardizer
                 self.travel_cost[i][i] = 0
 
-            self.earliest_service_time = np.zeros(self.ant.pheromone.shape, float)
-            self.lastest_service_time = np.zeros(self.ant.pheromone.shape, float)
+            self.earliest_service_time = np.zeros(shape, float)
+            self.lastest_service_time = np.zeros(shape, float)
             e_max, l_max, e_min, l_min = -1.0, -1.0, inf, inf
-            for i in range(self.ant.n):
+            for i in range(n):
                 i_earliest_windows = float(self.tsptw.time_windows[i][0])
                 i_lastest_windows  = float(self.tsptw.time_windows[i][1])
                 e_j, l_j = inf, inf
 
-                for j in range(self.ant.n):
+                for j in range(n):
                     if j != i:
                         earliest_time_windows = float(self.tsptw.time_windows[j][0]) - i_earliest_windows
                         lastest_time_windows  = float(self.tsptw.time_windows[j][1]) - i_lastest_windows
@@ -177,7 +173,7 @@ class ProbabilisticBeamSearch():
             # Standardize
             self.earliest_service_time = (e_max - self.earliest_service_time) / (e_max - e_min)
             self.lastest_service_time  = (l_max - self.lastest_service_time ) / (l_max - l_min) 
-            for i in range(self.ant.n):
+            for i in range(n):
                 if self.earliest_service_time[0, i] > 1.0:
                     self.earliest_service_time[:, i] = 1.0
                 if self.earliest_service_time[0, i] == 0.:
