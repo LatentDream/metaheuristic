@@ -3,6 +3,7 @@ from tsptw import TSPTW
 from utils.ant import Ant
 import numpy as np
 from math import inf
+from utils.utils import get_number_of_violations
 
 from utils.beam_node import BeamNode
 
@@ -81,7 +82,7 @@ class ProbabilisticBeamSearch():
             
 
     def __sort_solutions(self, potential_solutions: List[List[int]]) -> List[List[int]]:
-        potential_solutions_cost = [self.tsptw.get_solution_cost(solution) for solution in potential_solutions]
+        potential_solutions_cost = list(self.__get_solutions_cost(potential_solutions))
         sorted_solutions = list()
         np.argmin(potential_solutions_cost)
         while len(potential_solutions) != 0:
@@ -91,6 +92,15 @@ class ProbabilisticBeamSearch():
             del potential_solutions_cost[best_solution_idx]
 
         return sorted_solutions
+    
+
+    def __get_solutions_cost(self, solutions: List[List[int]]) -> List[float]:
+        solutions_cost = np.array([self.tsptw.get_solution_cost(solution) for solution in solutions])
+        solutions_cost = solutions_cost / np.sum(solutions_cost) if np.sum(solutions_cost) != 0 else solutions_cost 
+        solutions_violation = np.array([get_number_of_violations(solution, self.tsptw) for solution in solutions])
+        assert len(solutions_cost) == len(solutions_violation)
+        return solutions_cost + solutions_violation
+        
 
 
     def __stochastic_sampling(self, pheromone: List[List[float]], last_customer_added: int) -> int:

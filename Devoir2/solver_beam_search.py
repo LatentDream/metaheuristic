@@ -21,12 +21,10 @@ def solve(tsptw: TSPTW) -> List[int]:
             as the tour starts from the depot
     """
     # Variables
-    # nb_of_iter = 100_000   # stopping criteria 
-    nb_of_iter = 2           # stopping criteria 
-    determinism_rate = 0.1  # rate of determinism in the solution construction
-    nb_of_trials = 10        # number of trials to be executed for the given problem instance
-    beam_width = 10          # parameters for the beam procedure
-    mu = 5.0               # stochastic sampling parameter
+    determinism_rate = 0.05  # rate of determinism in the solution construction
+    nb_of_trials = 100       # number of trials to be executed for the given problem instance
+    beam_width = 250          # parameters for the beam procedure
+    mu = 10.0                # stochastic sampling parameter
     
     pbs = ProbabilisticBeamSearch(tsptw, None, beam_width, determinism_rate, mu)
 
@@ -37,9 +35,8 @@ def solve(tsptw: TSPTW) -> List[int]:
     times_best_found = list()
     iter_best_found = list()
 
-    total_iteration = nb_of_iter * nb_of_trials if nb_of_iter != 0 else nb_of_trials
-    with tqdm(total=total_iteration) as progress_bar:
-        for trial_nb in range(nb_of_trials):
+    with tqdm(total=nb_of_trials) as progress_bar:
+        for _ in range(nb_of_trials):
             trial_tic = time.time()
             
             trial_solution = pbs.beam_construct()
@@ -57,8 +54,8 @@ def solve(tsptw: TSPTW) -> List[int]:
             # Stats
             results.append(get_score(trial_solution, tsptw))
             violations.append(get_number_of_violations(trial_solution, tsptw))
-            times_best_found.append(trial_tic-trial_tac)
-            iter_best_found.append(trial_nb)
+            times_best_found.append(trial_tac - trial_tic)
+            iter_best_found.append(1)
                     
             trial_tic = time.time()
             progress_bar.update(1)
