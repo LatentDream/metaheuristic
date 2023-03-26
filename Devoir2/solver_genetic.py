@@ -3,7 +3,7 @@ from tsptw import TSPTW
 import time
 import random
 import numpy as np
-from math import ceil, inf
+from math import ceil, inf, floor
 import random
 from utils.ant import Ant
 from utils.beam_search import ProbabilisticBeamSearch
@@ -68,7 +68,7 @@ def solve(tsptw: TSPTW) -> List[int]:
     )
 
 
-# Define the genetic algorithm function with restarts and a time limit
+# Genetic algorithm
 def genetic_algorithm(
     tsptw: TSPTW,
     num_generations,
@@ -107,24 +107,25 @@ def genetic_algorithm(
 
         # Iterate over the generations
         for _ in range(num_generations):
+
             # Select the parents for the next generation
             parents = population
+
             # Create the offspring for the next generation
             offspring = []
             for j in range(len(parents) // 2):
                 parent1 = parents[j]
                 parent2 = parents[len(parents) - j - 1]
+                # Select the m value for m-point-crossover
                 if tsptw.num_nodes <= 10:
                     m = 2
                 else:
                     m = random.choice(range(2, max_m_crossover + 1))
-
                 child1, child2 = m_point_crossover(
                     parent1,
                     parent2,
                     m=m,
                 )
-
                 child1 = mutation(child1, mutation_rate)
                 child2 = mutation(child2, mutation_rate)
                 offspring.append(child1)
@@ -151,10 +152,7 @@ def genetic_algorithm(
                 best_solution = fittest_solution
                 best_fitness = fittest_score
                 improvement_timer = 0
-                if (
-                    tsptw.verify_solution(best_solution)
-                    and tsptw.get_solution_cost(best_solution) < best_cost
-                ):
+                if tsptw.verify_solution(best_solution):
                     print(
                         "Best valid solution found : Cost = {}".format(
                             tsptw.get_solution_cost(best_solution)
@@ -162,15 +160,9 @@ def genetic_algorithm(
                     )
                     best_valid_solution = best_solution
                 else:
-                    number_of_violations = get_number_of_violations(
-                        best_solution, tsptw
-                    )
-
-                    if number_of_violations > 0:
-                        print(
-                            "Genetic solution : Number of conflicts =",
-                            get_number_of_violations(best_solution, tsptw),
-                        )
+                    num_conflicts = floor(-best_fitness / 10e10)
+                    if num_conflicts > 0:
+                        print("Number of conflicts : ", floor(-best_fitness / 10e10))
             else:
                 improvement_timer += 1
                 # If no improvement is made during too many generations, restart on a new population
@@ -185,14 +177,13 @@ def genetic_algorithm(
         return best_solution
 
 
-###################################### Evaluation Functions ####################################""
+###################################### Evaluation Functions ####################################
 
 
 def fitness(tsptw: TSPTW, solution):
-    return 1 / (
+    return -(
         10e10 * get_number_of_violations(solution, tsptw)
         + tsptw.get_solution_cost(solution)
-        + 10e-10
     )
 
 
@@ -236,15 +227,14 @@ def selection(tsptw: TSPTW, population, pop_size, tournament_size, tournament_ac
     # Returns a list of the selected unique best chromosomes :
     # The population size is preserved and the selection is made with a tournament
     selected = []
-
     # Tournament to select the best solutions among the new population
     while len(selected) < pop_size:
         subset = random.sample(population, tournament_size)
-        fittest_solutions = sorted(
-            subset, key=lambda s: fitness(tsptw, s), reverse=True
-        )[:tournament_accepted]
-
-        selected.extend(fittest_solutions)
+        selected.extend(
+            sorted(subset, key=lambda s: fitness(tsptw, s), reverse=True)[
+                :tournament_accepted
+            ]
+        )
 
     return selected
 
