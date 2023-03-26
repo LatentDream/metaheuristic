@@ -27,8 +27,8 @@ def solve(tsptw: TSPTW) -> List[int]:
     pop_size = 300  # min(ceil(tsptw.num_nodes) , 50)  150 is good
     tournament_size = ceil(pop_size / 20)
     tournament_accepted = ceil(tournament_size / 5)
-    num_generations = 2000
-    no_progress_generations = 200
+    num_generations = 1000
+    no_progress_generations = 50
     max_m_crossover = 10
 
     global ant
