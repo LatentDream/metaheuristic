@@ -22,12 +22,12 @@ def solve(tsptw: TSPTW) -> List[int]:
     """
 
     mutation_rate = 0.15
-    pop_size = 30  # min(ceil(tsptw.num_nodes) , 50)
+    pop_size = 300  # min(ceil(tsptw.num_nodes) , 50)  150 is good
     tournament_size = ceil(pop_size / 3)
     tournament_accepted = ceil(tournament_size / 4)
     num_generations = 2000
-    no_progress_generations = 150
-    time_limit = 60 * 30
+    no_progress_generations = 200
+    time_limit = 10
     max_m_crossover = tsptw.num_nodes // 2
 
     l_rate = 0.1  # l_rate: the learning rate for pheromone values
@@ -97,7 +97,6 @@ def genetic_algorithm(
         best_solution = pbs.beam_construct()
         best_fitness = fitness(tsptw, best_solution)
         best_cost = tsptw.get_solution_cost(best_solution)
-    best_number_of_conflicts = get_number_of_violations(best_solution, tsptw)
 
     improvement_timer = 0
     while time.time() - start_time < time_limit:
@@ -108,14 +107,15 @@ def genetic_algorithm(
         # Iterate over the generations
         for _ in range(num_generations):
 
-            # Select the parents for the next generation
+            # The parents selected for the next generation are the whole population
             parents = population
-
             # Create the offspring for the next generation
             offspring = []
             for j in range(len(parents) // 2):
+
                 parent1 = parents[j]
                 parent2 = parents[len(parents) - j - 1]
+
                 # Select the m value for m-point-crossover
                 if tsptw.num_nodes <= 10:
                     m = 2
@@ -126,6 +126,7 @@ def genetic_algorithm(
                     parent2,
                     m=m,
                 )
+
                 child1 = mutation(child1, mutation_rate)
                 child2 = mutation(child2, mutation_rate)
                 offspring.append(child1)
@@ -136,7 +137,7 @@ def genetic_algorithm(
             # Select the survivors for the next generation : we keep the same population size
             population = selection(
                 tsptw,
-                population,
+                population + offspring,
                 pop_size,
                 tournament_size,
                 tournament_accepted,
@@ -152,7 +153,7 @@ def genetic_algorithm(
                 best_solution = fittest_solution
                 best_fitness = fittest_score
                 improvement_timer = 0
-                if tsptw.verify_solution(best_solution):
+                if best_fitness > -10e9:
                     print(
                         "Best valid solution found : Cost = {}".format(
                             tsptw.get_solution_cost(best_solution)
@@ -171,9 +172,15 @@ def genetic_algorithm(
 
     # If a valid solution has been found
     if best_valid_solution:
+        print(
+            "Number of violations", get_number_of_violations(best_valid_solution, tsptw)
+        )
+        print("Cost", tsptw.get_solution_cost(best_valid_solution))
         return best_valid_solution
     # If no valid solution has been found
     else:
+        print("Number of violations", get_number_of_violations(best_solution, tsptw))
+        print("Cost", tsptw.get_solution_cost(best_solution))
         return best_solution
 
 
@@ -218,16 +225,12 @@ def generate_population(tsptw, pop_size):
 def generate_chromosome(tsptw: TSPTW):
     chromosome = list(range(1, tsptw.num_nodes))
     random.shuffle(chromosome)
-    chromosome = [0] + chromosome + [0]
-    return chromosome
+    return [0] + chromosome + [0]
 
 
 # Selection through a tournament
 def selection(tsptw: TSPTW, population, pop_size, tournament_size, tournament_accepted):
-    # Returns a list of the selected unique best chromosomes :
-    # The population size is preserved and the selection is made with a tournament
     selected = []
-    # Tournament to select the best solutions among the new population
     while len(selected) < pop_size:
         subset = random.sample(population, tournament_size)
         selected.extend(
@@ -235,12 +238,15 @@ def selection(tsptw: TSPTW, population, pop_size, tournament_size, tournament_ac
                 :tournament_accepted
             ]
         )
-
     return selected
 
 
 # Crossover function
 def m_point_crossover(parent1, parent2, m):
+
+    parent1 = parent1[1:-1]
+    parent2 = parent2[1:-1]
+
     # Ensure m is between 0 and len(parent1) - 1
     m = max(min(m, len(parent1) - 1), 0)
 
@@ -271,6 +277,9 @@ def m_point_crossover(parent1, parent2, m):
     # Repair offspring chromosomes by replacing repeated elements with missing elements
     offspring1 = repair_chromosome(offspring1, parent1)
     offspring2 = repair_chromosome(offspring2, parent2)
+
+    offspring1 = [0] + offspring1 + [0]
+    offspring2 = [0] + offspring2 + [0]
 
     return offspring1, offspring2
 
