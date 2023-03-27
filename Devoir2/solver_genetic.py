@@ -72,10 +72,8 @@ def genetic_algorithm(
         best_valid_solution = greedy_solution
         best_solution = best_valid_solution
         best_fitness = fitness(tsptw, best_solution)
-        print(best_fitness)
         best_cost = tsptw.get_solution_cost(best_solution)
         print("Greedy solution cost :", best_cost)
-        print("Greedy solution path :", best_solution)
     else:
         best_solution = pbs.beam_construct()
         best_fitness = fitness(tsptw, best_solution)
@@ -141,10 +139,6 @@ def genetic_algorithm(
                         )
                     )
                     best_valid_solution = best_solution
-                else:
-                    num_conflicts = floor(-best_fitness / 10e10)
-                    if num_conflicts > 0:
-                        print("Number of conflicts : ", floor(-best_fitness / 10e10))
             else:
                 improvement_timer += 1
                 # If no improvement is made during too many generations, restart on a new population
