@@ -201,7 +201,7 @@ class RCPSP():
             resource_usage = [0] * num_resources
             for job, start_time in solution.items():
                 job_finish_time = start_time + self.graph.nodes[job]["duration"]
-                if start_time <= t <= job_finish_time:  # Fix the condition here
+                if start_time <= t < job_finish_time:  # Fix the condition here
                     job_resources = nx.get_node_attributes(self.graph, 'resources')[job]
                     resource_usage = [x + y for x, y in zip(resource_usage, job_resources)]
 

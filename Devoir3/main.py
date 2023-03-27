@@ -1,6 +1,7 @@
 import argparse
 import solver_naive
 import solver_advanced
+import solver_genetic
 import time
 from rcpsp import RCPSP
 
@@ -9,15 +10,15 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Instances parameters
-    parser.add_argument('--agent', type=str, default='naive')
-    parser.add_argument('--infile', type=str, default='instances/instance_A_30.txt')
-    parser.add_argument('--outfile', type=str, default='solution')
-    parser.add_argument('--visualisation_file', type=str, default='visualization')
+    parser.add_argument("--agent", type=str, default="naive")
+    parser.add_argument("--infile", type=str, default="instances/instance_A_30.txt")
+    parser.add_argument("--outfile", type=str, default="solution")
+    parser.add_argument("--visualisation_file", type=str, default="visualization")
 
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parse_arguments()
     rcpsp = RCPSP(args.infile)
 
@@ -36,14 +37,16 @@ if __name__ == '__main__':
     if args.agent == "naive":
         # trivial extensive search
         solution = solver_naive.solve(rcpsp)
-        
+    elif args.agent == "genetic":
+        # Genetic Agent
+        solution = solver_genetic.solve(rcpsp)
     elif args.agent == "advanced":
         # Your nice agent
         solution = solver_advanced.solve(rcpsp)
     else:
         raise Exception("This agent does not exist")
 
-    solving_time = round((time.time() - start_time) / 60,2)
+    solving_time = round((time.time() - start_time) / 60, 2)
 
     # You can disable the display if you do not want to generate the visualization
     rcpsp.display_solution(solution, args.visualisation_file)
