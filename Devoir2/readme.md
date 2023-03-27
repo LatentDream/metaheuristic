@@ -37,7 +37,9 @@ pip install -r requirements.txt
 → Run problem
 ```
 python3 main.py --agent=naive --infile=instances/A_4.txt
-python3 main.py --agent=advanced --infile=instances/B_20.txt
+python3 main.py --agent=advanced --infile=instances/A_4.txt
+python3 main.py --agent=genetic --infile=instances/A_4.txt
+python3 main.py --agent=beam_search --infile=instances/A_4.txt
 ```
 ---
 Solution tested:
@@ -45,3 +47,7 @@ Solution tested:
 
 Beam-ACO algorithms are hybrids between ant colony optimization and
 beam search. Ant colony optimization (ACO) is a metaheuristic that is based on the probabilistic construction of solutions. At each algorithm iteration, a number of solutions are constructed independently of each other. Beam-ACO employs instead at each iteration a probabilistic beam search procedure that constructs a number of solutions interdependently and in parallel. At each construction step, beam search keeps a certain number of the best partial solutions available for further extension. These partial solutions are selected with respect to bounding information. Hence, accurate and inexpensive bounding information is a crucial component of beam search. A problem arises when the bounding information is either misleading or when this information is computationally expensive, which is the case for the TSPTW. This work uses stochastic sampling as an alternative to bounding information. When using stochastic sampling, each partial solution is completed a certain number of times in a stochastic way. The information obtained by these stochastic samples is used to rank the different partial solutions. The worst partial solutions are then excluded from further examination. 
+
+2. Genetic
+
+3. Beam search
