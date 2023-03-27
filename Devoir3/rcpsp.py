@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 
-class RCPSP():
+class RCPSP:
     def __init__(self, filename: str):
         """Initialize the RCPSP structure from input file. The resulting graph will
         have nodes with the following attributes:
@@ -14,12 +14,14 @@ class RCPSP():
         Args:
             filename (str): path to the instance file
         """
-        jobs, durations, resources, resource_availabilities = self.parse_psplib_data(filename)
+        jobs, durations, resources, resource_availabilities = self.parse_psplib_data(
+            filename
+        )
         self.resource_availabilities = resource_availabilities
         self.graph = self.create_graph(jobs, durations, resources)
-    
-    def parse_psplib_data(self, filename:str):
-        """Parse the given instance and store the result as a networkx graph. 
+
+    def parse_psplib_data(self, filename: str):
+        """Parse the given instance and store the result as a networkx graph.
 
         Args:
             filename (str): path to the instance to parse
@@ -30,37 +32,47 @@ class RCPSP():
             resources (dict): maps job IDs to their resource consumption; ex {1: [2, 3, 5, 0]}
             resource_availabilities (list[int]): the availability of all resources
         """
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             lines = f.readlines()
 
-        jobs_data_index = lines.index('PRECEDENCE RELATIONS:\n') + 2  # Skip the header line
+        jobs_data_index = (
+            lines.index("PRECEDENCE RELATIONS:\n") + 2
+        )  # Skip the header line
         jobs_data = lines[jobs_data_index:]
 
         jobs = {}
         for line in jobs_data:
-            if line.startswith('************************************************************************'):
+            if line.startswith(
+                "************************************************************************"
+            ):
                 break
 
             job_info = list(map(int, line.split()))
             job_id, _, *successors = job_info
             jobs[job_id] = successors
 
-        durations_index = lines.index('REQUESTS/DURATIONS:\n') + 2  # Skip the header line
+        durations_index = (
+            lines.index("REQUESTS/DURATIONS:\n") + 2
+        )  # Skip the header line
         durations_data = lines[durations_index:]
 
         durations = {}
         resources = {}
         for line in durations_data:
-            if line.startswith('------------------------------------------------------------------------') or line.startswith('************************************************************************'):
+            if line.startswith(
+                "------------------------------------------------------------------------"
+            ) or line.startswith(
+                "************************************************************************"
+            ):
                 continue
-            if line.startswith('RESOURCEAVAILABILITIES:'):
+            if line.startswith("RESOURCEAVAILABILITIES:"):
                 break
 
             job_info = list(map(int, line.split()))
             job_id, duration, *resource_reqs = job_info
             durations[job_id] = duration
             resources[job_id] = resource_reqs
-        
+
         resource_availabilities = [int(i) for i in lines[-2].split()]
 
         return jobs, durations, resources, resource_availabilities
@@ -73,7 +85,9 @@ class RCPSP():
         graph = nx.DiGraph()
 
         for job_id, successors in jobs.items():
-            graph.add_node(job_id, duration=durations[job_id], resources=resources[job_id])
+            graph.add_node(
+                job_id, duration=durations[job_id], resources=resources[job_id]
+            )
 
             for successor in successors:
                 graph.add_edge(job_id, successor)
@@ -103,8 +117,18 @@ class RCPSP():
         for task_id, start_time in solution.items():
             duration = self.graph.nodes[task_id]["duration"]
             end_time = start_time + duration
-            ax.barh(task_id, duration, left=start_time, align='center', color='lightblue')
-            ax.text(start_time + (duration / 2), task_id, f"Task {task_id}", ha='center', va='center', color='black', fontweight='bold')
+            ax.barh(
+                task_id, duration, left=start_time, align="center", color="lightblue"
+            )
+            ax.text(
+                start_time + (duration / 2),
+                task_id,
+                f"Task {task_id}",
+                ha="center",
+                va="center",
+                color="black",
+                fontweight="bold",
+            )
 
         # Add arrows for dependencies
         for task_id, task_start in solution.items():
@@ -112,15 +136,22 @@ class RCPSP():
             successors = self.graph.successors(task_id)
             for succ_id in successors:
                 succ_start = solution[succ_id]
-                arrow = mpatches.FancyArrowPatch((task_end, task_id),
-                                                (succ_start, succ_id),
-                                                arrowstyle='-|>',
-                                                mutation_scale=20,
-                                                color='red',
-                                                linestyle='dashed')
+                arrow = mpatches.FancyArrowPatch(
+                    (task_end, task_id),
+                    (succ_start, succ_id),
+                    arrowstyle="-|>",
+                    mutation_scale=20,
+                    color="red",
+                    linestyle="dashed",
+                )
                 ax.add_patch(arrow)
 
-        max_finish_time = max([solution[job] + self.graph.nodes[job]["duration"] for job in self.graph.nodes])
+        max_finish_time = max(
+            [
+                solution[job] + self.graph.nodes[job]["duration"]
+                for job in self.graph.nodes
+            ]
+        )
         ax.set_xlim(0, max_finish_time)
         ax.set_xlabel("Time")
         ax.set_ylabel("Task ID")
@@ -128,9 +159,8 @@ class RCPSP():
         ax.grid(True)
 
         if plot_name:
-            plt.savefig(plot_name + "_gantt.png", bbox_inches='tight')
+            plt.savefig(plot_name + "_gantt.png", bbox_inches="tight")
         plt.show()
-
 
     def plot_resource_utilization(self, solution, plot_name=""):
         """
@@ -140,13 +170,28 @@ class RCPSP():
         plot_name (str): name of the plot
         """
         num_resources = len(self.resource_availabilities)
-        max_finish_time = max([solution[job] + self.graph.nodes[job]["duration"] for job in self.graph.nodes])
+        max_finish_time = max(
+            [
+                solution[job] + self.graph.nodes[job]["duration"]
+                for job in self.graph.nodes
+            ]
+        )
 
         # Initialize resource utilization
-        resource_utilization = {i: [0] * (max_finish_time + 1) for i in range(num_resources)}
+        resource_utilization = {
+            i: [0] * (max_finish_time + 1) for i in range(num_resources)
+        }
 
         # Extract the unique start and finish times and sort them
-        time_points = sorted(set([solution[job] for job in self.graph.nodes] + [solution[job] + self.graph.nodes[job]["duration"] for job in self.graph.nodes]))
+        time_points = sorted(
+            set(
+                [solution[job] for job in self.graph.nodes]
+                + [
+                    solution[job] + self.graph.nodes[job]["duration"]
+                    for job in self.graph.nodes
+                ]
+            )
+        )
 
         for idx in range(len(time_points) - 1):
             t_start, t_end = time_points[idx], time_points[idx + 1]
@@ -156,25 +201,36 @@ class RCPSP():
                 job_finish = job_start + job_duration
 
                 if job_start <= t_start < job_finish:
-                    job_resources = nx.get_node_attributes(self.graph, 'resources')[job]
+                    job_resources = nx.get_node_attributes(self.graph, "resources")[job]
                     for i, r in enumerate(job_resources):
-                        resource_utilization[i][t_start:t_end] = [x + r for x in resource_utilization[i][t_start:t_end]]
+                        resource_utilization[i][t_start:t_end] = [
+                            x + r for x in resource_utilization[i][t_start:t_end]
+                        ]
 
         # Create subplots for each resource
-        fig, axes = plt.subplots(num_resources, 1, figsize=(12, num_resources * 4), sharex=True)
+        fig, axes = plt.subplots(
+            num_resources, 1, figsize=(12, num_resources * 4), sharex=True
+        )
 
-        for i, (ax, resource_usage) in enumerate(zip(axes, resource_utilization.values())):
+        for i, (ax, resource_usage) in enumerate(
+            zip(axes, resource_utilization.values())
+        ):
             ax.bar(range(max_finish_time + 1), resource_usage)
-            ax.axhline(y=self.resource_availabilities[i], color='r', linestyle='-', label=f'Capacity: {self.resource_availabilities[i]}')
-            ax.set_title(f'Resource {i + 1}')
+            ax.axhline(
+                y=self.resource_availabilities[i],
+                color="r",
+                linestyle="-",
+                label=f"Capacity: {self.resource_availabilities[i]}",
+            )
+            ax.set_title(f"Resource {i + 1}")
             ax.legend()
 
-        plt.xlabel('Time')
+        plt.xlabel("Time")
         plt.tight_layout()
         if plot_name:
-            plt.savefig(plot_name + "_resources.png", bbox_inches='tight')
+            plt.savefig(plot_name + "_resources.png", bbox_inches="tight")
         plt.show()
-    
+
     def verify_solution(self, solution):
         # min start time is 0
         min_start_time = min([solution[job] for job in self.graph.nodes])
@@ -188,29 +244,44 @@ class RCPSP():
             job_finish_time = job_start_time + duration
             for successor in self.graph.successors(job):
                 if solution[successor] < job_finish_time:
-                    print(f"Precedence constraint violated: job {job} -> job {successor}")
+                    print(
+                        f"Precedence constraint violated: job {job} -> job {successor}"
+                    )
                     return False
 
         # Check resource constraints
         num_resources = len(self.resource_availabilities)
 
         # Find the maximum finish time to set the range for resource usage check
-        max_finish_time = max([solution[job] + self.graph.nodes[job]["duration"] for job in self.graph.nodes])
+        max_finish_time = max(
+            [
+                solution[job] + self.graph.nodes[job]["duration"]
+                for job in self.graph.nodes
+            ]
+        )
 
         for t in range(max_finish_time + 1):
             resource_usage = [0] * num_resources
             for job, start_time in solution.items():
                 job_finish_time = start_time + self.graph.nodes[job]["duration"]
                 if start_time <= t < job_finish_time:  # Fix the condition here
-                    job_resources = nx.get_node_attributes(self.graph, 'resources')[job]
-                    resource_usage = [x + y for x, y in zip(resource_usage, job_resources)]
+                    job_resources = nx.get_node_attributes(self.graph, "resources")[job]
+                    resource_usage = [
+                        x + y for x, y in zip(resource_usage, job_resources)
+                    ]
 
-            if any(usage > available for usage, available in zip(resource_usage, self.resource_availabilities)):
-                print(f"Resource constraint violated at time {t}: {resource_usage} > {self.resource_availabilities}")
+            if any(
+                usage > available
+                for usage, available in zip(
+                    resource_usage, self.resource_availabilities
+                )
+            ):
+                print(
+                    f"Resource constraint violated at time {t}: {resource_usage} > {self.resource_availabilities}"
+                )
                 return False
 
         return True
-
 
     def get_solution_cost(self, solution: Dict) -> int:
         """Computes and returns the cost of a solution
@@ -219,11 +290,16 @@ class RCPSP():
         Returns:
             max_finish_time (int): cost (makespan) of the solution
         """
-        max_finish_time = max([solution[job] + self.graph.nodes[job]["duration"] for job in self.graph.nodes])
-        
+        max_finish_time = max(
+            [
+                solution[job] + self.graph.nodes[job]["duration"]
+                for job in solution.keys()
+            ]
+        )
+
         return max_finish_time
-    
-    def save_solution(self, solution: Dict, output_file: str="") -> None:
+
+    def save_solution(self, solution: Dict, output_file: str = "") -> None:
         """Saves solution to file
 
         Args:

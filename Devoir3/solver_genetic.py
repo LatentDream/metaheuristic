@@ -18,6 +18,8 @@ def solve(rcpsp: RCPSP) -> List[int]:
             of the nodes. p1, ..., pn are all integers representing the id of the node. The solution starts and ends with 0
             as the tour starts from the depot
     """
+    print(rcpsp.graph.nodes)
+
     time_limit = 5 * 60  # 20 * 60
 
     mutation_rate = 0.1
@@ -207,7 +209,7 @@ def generate_chromosome(r: RCPSP):
 
         # Compute the earliest start time for the current job
         earliest_start_time = max(
-            solution[p] + r.graph.edges[p, job_id] for p in predecessors
+            solution[p] + r.graph.nodes[job_id]["duration"] for p in predecessors
         )
 
         # Add some randomness to the start time

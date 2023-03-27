@@ -2,6 +2,7 @@ import argparse
 import solver_naive
 import solver_advanced
 import solver_genetic
+import solver_LNS
 import time
 from rcpsp import RCPSP
 
@@ -40,6 +41,9 @@ if __name__ == "__main__":
     elif args.agent == "genetic":
         # Genetic Agent
         solution = solver_genetic.solve(rcpsp)
+    elif args.agent == "lns":
+        # Genetic Agent
+        solution = solver_LNS.solve(rcpsp)
     elif args.agent == "advanced":
         # Your nice agent
         solution = solver_advanced.solve(rcpsp)

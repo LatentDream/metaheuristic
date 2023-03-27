@@ -4,6 +4,7 @@ from rcpsp import RCPSP
 import networkx as nx
 import itertools
 
+
 def solve(rcpsp: RCPSP) -> List[int]:
     """Naive solution to the problem: connect 2 terminal nodes via shortest path.
 
