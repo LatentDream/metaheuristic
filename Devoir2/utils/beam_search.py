@@ -12,9 +12,9 @@ class ProbabilisticBeamSearch():
     def __init__(self, 
                  tsptw: TSPTW, 
                  ant: Ant = None, 
-                 beam_width: int = 1, 
+                 beam_width: int = 2, 
                  determinism_rate: float = 0.9, 
-                 mu: float = 0.2):
+                 mu: float = 5):
         assert int(beam_width) > 0, "beam_width must be greater than 0"
         assert mu >= 1, "mu must be >= 1"
         self.tsptw: TSPTW = tsptw
