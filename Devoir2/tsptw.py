@@ -133,8 +133,6 @@ class TSPTW:
             total_time += self.graph[current_node][next_node]["weight"]
             total_time = max(total_time, lower_bound)
             if total_time > upper_bound:
-                # print("CONFLICt current_node", i)
-                # print("next", i + 1)
                 return False
 
         return True
