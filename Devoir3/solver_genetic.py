@@ -21,15 +21,15 @@ def solve(rcpsp: RCPSP) -> List[int]:
             as the tour starts from the depot
     """
 
-    time_limit = 10  # 20 * 60
+    time_limit = 5 * 60  # 20 * 60
 
-    mutation_rate = 0.01
-    pop_size = 20
-    tournament_size = ceil(pop_size / 2)
-    tournament_accepted = ceil(tournament_size / 2)
-    num_generations = 200
-    no_progress_generations = 100
-    elite_size = 10
+    mutation_rate = 0.005
+    pop_size = 30
+    tournament_size = 10
+    tournament_accepted = 5
+    num_generations = 100
+    no_progress_generations = 20
+    elite_size = 2
 
     return genetic_algorithm(
         rcpsp,
@@ -73,6 +73,9 @@ def genetic_algorithm(
             ]
 
             # The parents selected for the next generation are the whole population
+            population = sorted(population, key=lambda s: fitness(r, s), reverse=True)[
+                : pop_size // 2
+            ]
 
             # Create the offspring for the next generation
             offspring = []
@@ -103,7 +106,7 @@ def genetic_algorithm(
             id_fittest = np.argmax(fitness_scores)
             fittest_solution = population[id_fittest]
             fittest_score = fitness_scores[id_fittest]
-
+            # print(fittest_solution)
             print("Conflicts : ", max(0, -floor(fittest_score)))
             if fittest_score > best_fitness:
                 best_solution = fittest_solution
@@ -210,6 +213,8 @@ def generate_chromosome(r: RCPSP):
     for task in tasks:
         solution[task] = random.choice([i for i in range(0, horizon + 1)])
 
+    set_start_time_zero(r, solution)
+
     return solution
 
 
@@ -247,6 +252,8 @@ def generate_fit_chromosome(r):
         for successor in r.graph.successors(job_id):
             weight = r.graph.edges[job_id, successor].get("weight", 0)
             available_start_times[successor].append(start_time + weight)
+
+    set_start_time_zero(r, solution)
 
     return solution
 
@@ -317,3 +324,13 @@ def selection(r: RCPSP, population, pop_size, tournament_size, tournament_accept
             ]
         )
     return selected
+
+
+def set_start_time_zero(r: RCPSP, solution):
+    min_start_time = min([solution[job] for job in r.graph.nodes])
+    if min_start_time > 0:
+        key = [k for k, v in solution.items() if v == min_start_time][0]
+        solution[key] = 0
+        return solution
+    else:
+        return solution

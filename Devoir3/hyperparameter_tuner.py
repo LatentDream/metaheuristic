@@ -24,8 +24,8 @@ def solve(rcpsp: RCPSP) -> List[int]:
     pop_sizes = [20 * i for i in range(1, 6)]
     tournament_sizes = [10 * i for i in range(1, 6)]
     tournament_accepted_sizes = [5 * i for i in range(1, 6)]
-    
-    time_limit = 10  # 20 * 60
+
+    time_limit = 20 * 60  # 20 * 60
 
     mutation_rate = 0.01
     pop_size = 20
@@ -108,7 +108,7 @@ def genetic_algorithm(
             fittest_solution = population[id_fittest]
             fittest_score = fitness_scores[id_fittest]
 
-            print("Conflicts : ", max(0, -floor(fittest_score)))
+            # print("Conflicts : ", max(0, -floor(fittest_score)))
             if fittest_score > best_fitness:
                 best_solution = fittest_solution
                 best_fitness = fittest_score
