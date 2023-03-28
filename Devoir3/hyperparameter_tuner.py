@@ -20,7 +20,11 @@ def solve(rcpsp: RCPSP) -> List[int]:
             of the nodes. p1, ..., pn are all integers representing the id of the node. The solution starts and ends with 0
             as the tour starts from the depot
     """
-
+    mutations_rates = [0.001 * (12 * i) for i in range(1, 6)]
+    pop_sizes = [20 * i for i in range(1, 6)]
+    tournament_sizes = [10 * i for i in range(1, 6)]
+    tournament_accepted_sizes = [5 * i for i in range(1, 6)]
+    
     time_limit = 10  # 20 * 60
 
     mutation_rate = 0.01

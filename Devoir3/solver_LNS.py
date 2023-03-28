@@ -24,11 +24,14 @@ def solve(rcpsp: RCPSP) -> List[int]:
     time_limit = 5 * 60  # 20 * 60
     k_min = 1
     k_max = 10  # ceil(0.30 * len(rcpsp.graph.nodes))
+    max_iter = 20
 
-    return LNS_RCPSP(r=rcpsp, time_limit=time_limit, k_min=k_min, k_max=k_max)
+    return LNS_RCPSP(
+        r=rcpsp, time_limit=time_limit, k_min=k_min, k_max=k_max, max_iter=max_iter
+    )
 
 
-def LNS_RCPSP(r: RCPSP, time_limit, k_min, k_max):
+def LNS_RCPSP(r: RCPSP, time_limit, k_min, k_max, max_iter):
 
     start_time = time.time()
 
@@ -46,7 +49,7 @@ def LNS_RCPSP(r: RCPSP, time_limit, k_min, k_max):
         partial_solution = remove_tasks(current_solution, k)
 
         # Solve the subproblem with an exact method
-        new_solution = local_search(r, partial_solution, max_iter=5)
+        new_solution = local_search(r, partial_solution, max_iter=max_iter)
         new_fitness = fitness(r, new_solution)
 
         # Update the best solution if the new solution is better
@@ -61,6 +64,8 @@ def LNS_RCPSP(r: RCPSP, time_limit, k_min, k_max):
 
         if no_progress % 10 == 0:
             current_solution = generate_solution(r)
+        elif no_progress % 20 == 0:
+            current_solution = best_solution
         else:
             current_solution = deepcopy(new_solution)
 
@@ -76,7 +81,10 @@ def fitness(r: RCPSP, solution):
     res_conflicts = resource_conflicts(r, solution)
 
     fitness = -(
-        r.get_solution_cost(solution) + st_conflict + prec_conflicts + res_conflicts
+        r.get_solution_cost(solution)
+        + 10 * st_conflict
+        + 1000 * prec_conflicts
+        + 100 * res_conflicts
     )
     return fitness
 
@@ -195,8 +203,8 @@ def local_search(r: RCPSP, solution: Dict[int, int], max_iter=20):
 
     # Compute the list of missing tasks
     missing_tasks = [t for t in r.graph.nodes if t not in solution]
-
     # Iterate over missing tasks and add the one that improves the fitness score the most
+
     for task in missing_tasks:
         best_start_time = 0
         best_fitness = inf
@@ -204,9 +212,7 @@ def local_search(r: RCPSP, solution: Dict[int, int], max_iter=20):
         # Iterate over possible start times for the missing task
         for _ in range(max_iter):
 
-            start_time = random.choice(
-                range(0, horizon - r.graph.nodes[task]["duration"] + 1)
-            )
+            start_time = random.choice(range(0, horizon))
             # Compute the fitness score for the solution with the missing task added at this start time
             temp_solution = deepcopy(solution)
             temp_solution[task] = start_time
