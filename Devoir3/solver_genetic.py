@@ -23,13 +23,14 @@ def solve(rcpsp: RCPSP) -> List[int]:
 
     time_limit = 5 * 60  # 20 * 60
 
-    mutation_rate = 0.005
     pop_size = 30
+    mutation_rate = 1 / pop_size
+
     tournament_size = 10
     tournament_accepted = 5
     num_generations = 100
     no_progress_generations = 20
-    elite_size = 2
+    elite_size = 1
 
     return genetic_algorithm(
         rcpsp,
@@ -61,28 +62,28 @@ def genetic_algorithm(
     best_fitness = -inf
     improvement_timer = 0
     time_over = False
+
     while not time_over:
 
         # Generate the initial population
         population = generate_population(r, pop_size, elite_size=elite_size)
+        population = sorted(population, key=lambda s: fitness(r, s), reverse=True)
+
         # Iterate over the generations
         for _ in range(num_generations):
 
-            elite = sorted(population, key=lambda s: fitness(r, s), reverse=True)[
-                :elite_size
-            ]
+            # The parents selected for the next generation
+            parents = population[: pop_size // 2]
 
-            # The parents selected for the next generation are the whole population
-            population = sorted(population, key=lambda s: fitness(r, s), reverse=True)[
-                : pop_size // 2
-            ]
+            # The elite is kept for the next generation
+            elite = population[:elite_size]
 
             # Create the offspring for the next generation
             offspring = []
-            for j in range(len(population) // 2):
+            for j in range(len(parents) // 2):
 
-                parent1 = population[j]
-                parent2 = population[len(population) - j - 1]
+                parent1 = parents[j]
+                parent2 = parents[len(parents) - j - 1]
 
                 child1, child2 = crossoverPMX(parent1, parent2)
 
@@ -93,21 +94,27 @@ def genetic_algorithm(
                 offspring.append(child2)
 
             # Select the survivors for the next generation : we keep the same population size
-            population = selection(
-                r,
-                population + offspring + elite,
-                pop_size,
-                tournament_size,
-                tournament_accepted,
+            population = (
+                selection(
+                    r,
+                    population + offspring,
+                    pop_size,
+                    tournament_size,
+                    tournament_accepted,
+                )
+                + elite
+            )
+
+            population = sorted(
+                population, key=lambda s: fitness(r, s), reverse=True
             )
 
             # Update the best solution found so far
-            fitness_scores = [fitness(r, s) for s in population]
-            id_fittest = np.argmax(fitness_scores)
-            fittest_solution = population[id_fittest]
-            fittest_score = fitness_scores[id_fittest]
+            fittest_solution = population[0]
+            fittest_score = fitness(r, fittest_solution)
             # print(fittest_solution)
             print("Conflicts : ", max(0, -floor(fittest_score)))
+
             if fittest_score > best_fitness:
                 best_solution = fittest_solution
                 best_fitness = fittest_score
