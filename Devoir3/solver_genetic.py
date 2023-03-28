@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 from rcpsp import RCPSP
 from math import ceil, floor
 import time
@@ -25,7 +25,7 @@ def solve(rcpsp: RCPSP) -> List[int]:
 
     pop_size = 30
     mutation_rate = 1 / pop_size
-
+    max_iter_local_search = 2000
     tournament_size = 10
     tournament_accepted = 5
     num_generations = 100
@@ -36,6 +36,7 @@ def solve(rcpsp: RCPSP) -> List[int]:
         rcpsp,
         num_generations=num_generations,
         no_progress_generations=no_progress_generations,
+        max_iter_local_search=max_iter_local_search,
         elite_size=elite_size,
         mutation_rate=mutation_rate,
         tournament_size=tournament_size,
@@ -49,6 +50,7 @@ def genetic_algorithm(
     r: RCPSP,
     num_generations,
     no_progress_generations,
+    max_iter_local_search,
     elite_size,
     mutation_rate,
     tournament_size,
@@ -105,9 +107,7 @@ def genetic_algorithm(
                 + elite
             )
 
-            population = sorted(
-                population, key=lambda s: fitness(r, s), reverse=True
-            )
+            population = sorted(population, key=lambda s: fitness(r, s), reverse=True)
 
             # Update the best solution found so far
             fittest_solution = population[0]
@@ -116,16 +116,21 @@ def genetic_algorithm(
             print("Conflicts : ", max(0, -floor(fittest_score)))
 
             if fittest_score > best_fitness:
-                best_solution = fittest_solution
-                best_fitness = fittest_score
+                fittest_solution = local_search(
+                    r, fittest_solution, max_iterations=max_iter_local_search
+                )
+
+                best_solution = fittest_solution.copy()
+                best_fitness = fitness(r, best_solution)
                 improvement_timer = 0
                 if best_fitness > 0:
+
                     print(
                         "Best valid solution found : Cost = {}".format(
                             r.get_solution_cost(best_solution)
                         )
                     )
-                    best_valid_solution = best_solution
+                    best_valid_solution = best_solution.copy()
             else:
                 improvement_timer += 1
                 # If no improvement is made during too many generations, restart on a new population
@@ -139,7 +144,7 @@ def genetic_algorithm(
     # If a valid solution has been found
     if best_valid_solution:
         print("Cost", r.get_solution_cost(best_valid_solution))
-        print("Solution valid ", r.verify_solution(best_fitness))
+        print("Solution valid ", r.verify_solution(best_valid_solution))
         return best_valid_solution
     else:
         return best_solution
@@ -205,6 +210,16 @@ def resource_conflicts(r: RCPSP, solution):
         ):
             n_conflicts += 1
     return n_conflicts
+
+
+def set_start_time_zero(r: RCPSP, solution):
+    min_start_time = min([solution[job] for job in r.graph.nodes])
+    if min_start_time > 0:
+        key = [k for k, v in solution.items() if v == min_start_time][0]
+        solution[key] = 0
+        return solution
+    else:
+        return solution
 
 
 ###################################### Genetic Operaters ###############################
@@ -333,11 +348,56 @@ def selection(r: RCPSP, population, pop_size, tournament_size, tournament_accept
     return selected
 
 
-def set_start_time_zero(r: RCPSP, solution):
-    min_start_time = min([solution[job] for job in r.graph.nodes])
-    if min_start_time > 0:
-        key = [k for k, v in solution.items() if v == min_start_time][0]
-        solution[key] = 0
-        return solution
-    else:
-        return solution
+################################# Local Search to improve valid solutions ##############################################
+
+
+def local_search(
+    r: RCPSP, solution: Dict[int, int], max_iterations: int
+) -> Dict[int, int]:
+
+    horizon = 181
+
+    current_solution = solution.copy()
+    best_solution = solution.copy()
+    best_fitness = fitness(r, best_solution)
+
+    for _ in range(max_iterations):
+
+        # Choose a random job and a new start time for it
+        job_id = random.choice(list(r.graph.nodes))
+
+        if len(list(r.graph.predecessors(job_id))) > 0:
+            earliest_start_time = max(
+                solution[p] + r.graph.nodes[job_id]["duration"]
+                for p in r.graph.predecessors(job_id)
+            )
+        else:
+            earliest_start_time = solution[job_id] - r.graph.nodes[job_id]["duration"]
+
+        if len(list(r.graph.successors(job_id))) > 0:
+            latest_start_time = min(
+                solution[s] - r.graph.nodes[job_id]["duration"]
+                for s in r.graph.successors(job_id)
+            )
+        else:
+            latest_start_time = solution[job_id] + r.graph.nodes[job_id]["duration"]
+
+        if latest_start_time < earliest_start_time:
+            continue
+
+        new_start_time = random.randint(earliest_start_time, latest_start_time)
+
+        # Update the solution with the new start time
+        current_solution[job_id] = new_start_time
+
+        # Compute the fitness of the new solution and decide whether to accept it
+        current_fitness = fitness(r, current_solution)
+        if current_fitness < best_fitness:
+            best_solution = current_solution.copy()
+            best_fitness = current_fitness
+
+        # If the new solution is not accepted, revert the change
+        else:
+            current_solution = best_solution.copy()
+
+    return best_solution
