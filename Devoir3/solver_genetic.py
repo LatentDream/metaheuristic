@@ -23,13 +23,13 @@ def solve(rcpsp: RCPSP) -> List[int]:
 
     time_limit = 5 * 60  # 20 * 60
 
-    pop_size = 30
+    pop_size = 300
     mutation_rate = 1 / pop_size
-    max_iter_local_search = 2000
-    tournament_size = 10
-    tournament_accepted = 5
-    num_generations = 100
-    no_progress_generations = 20
+    max_iter_local_search = 200
+    tournament_size = 20
+    tournament_accepted = 10
+    num_generations = 10
+    no_progress_generations = 2
     elite_size = 1
 
     return genetic_algorithm(
@@ -61,6 +61,7 @@ def genetic_algorithm(
 
     start_time = time.time()
     best_valid_solution = None
+    best_fitness_no_improvement = -inf
     best_fitness = -inf
     improvement_timer = 0
     time_over = False
@@ -99,7 +100,7 @@ def genetic_algorithm(
             population = (
                 selection(
                     r,
-                    population + offspring,
+                    parents + offspring,
                     pop_size,
                     tournament_size,
                     tournament_accepted,
@@ -112,29 +113,29 @@ def genetic_algorithm(
             # Update the best solution found so far
             fittest_solution = population[0]
             fittest_score = fitness(r, fittest_solution)
-            # print(fittest_solution)
-            print("Conflicts : ", max(0, -floor(fittest_score)))
-
-            if fittest_score > best_fitness:
-                fittest_solution = local_search(
+            
+            if fittest_score > best_fitness_no_improvement:
+                best_fitness_no_improvement = fittest_score
+                print("ok")
+                improved_solution, improved_solution_score = local_search(
                     r, fittest_solution, max_iterations=max_iter_local_search
                 )
 
-                best_solution = fittest_solution.copy()
-                best_fitness = fitness(r, best_solution)
-                improvement_timer = 0
-                if best_fitness > 0:
-
+                if improved_solution_score > best_fitness:
                     print(
-                        "Best valid solution found : Cost = {}".format(
-                            r.get_solution_cost(best_solution)
-                        )
+                        "BEST SOLUTION FOUND : Cost ",
+                        r.get_solution_cost(improved_solution),
                     )
-                    best_valid_solution = best_solution.copy()
+                    best_fitness = improved_solution_score
+                    best_valid_solution = improved_solution.copy()
+
+                improvement_timer = 0
+
             else:
                 improvement_timer += 1
                 # If no improvement is made during too many generations, restart on a new population
-                if improvement_timer % no_progress_generations == 0:
+                if improvement_timer > no_progress_generations == 0:
+                    improvement_timer = 0
                     break
 
             if time.time() - start_time > time_limit:
@@ -212,8 +213,8 @@ def resource_conflicts(r: RCPSP, solution):
     return n_conflicts
 
 
-def set_start_time_zero(r: RCPSP, solution):
-    min_start_time = min([solution[job] for job in r.graph.nodes])
+def set_start_time_zero(solution):
+    min_start_time = min([solution[job] for job in solution.keys()])
     if min_start_time > 0:
         key = [k for k, v in solution.items() if v == min_start_time][0]
         solution[key] = 0
@@ -235,7 +236,19 @@ def generate_chromosome(r: RCPSP):
     for task in tasks:
         solution[task] = random.choice([i for i in range(0, horizon + 1)])
 
-    set_start_time_zero(r, solution)
+    flag = True
+    while flag == True:
+        flag = False
+        for job in r.graph.nodes:
+            duration = r.graph.nodes[job]["duration"]
+            job_start_time = solution[job]
+            job_finish_time = job_start_time + duration
+            for successor in r.graph.successors(job):
+                if solution[successor] < job_finish_time:
+                    flag = True
+                    solution[successor] = solution[job] + r.graph.nodes[job]["duration"]
+
+    set_start_time_zero(solution)
 
     return solution
 
@@ -275,7 +288,7 @@ def generate_fit_chromosome(r):
             weight = r.graph.edges[job_id, successor].get("weight", 0)
             available_start_times[successor].append(start_time + weight)
 
-    set_start_time_zero(r, solution)
+    set_start_time_zero(solution)
 
     return solution
 
@@ -283,8 +296,8 @@ def generate_fit_chromosome(r):
 def generate_population(r: RCPSP, pop_size, elite_size):
     population = []
 
-    for _ in range(elite_size):
-        population.append(generate_fit_chromosome(r))
+    # for _ in range(elite_size):
+    #     population.append(generate_fit_chromosome(r))
     for _ in range(pop_size):
         population.append(generate_chromosome(r))
     return population
@@ -305,6 +318,9 @@ def crossoverPMX(parent1, parent2):
 
     for i in range(xpoint12 - 1, xpoint22 - 1):
         child2[keys[i]] = parent1[keys[i]]
+
+    set_start_time_zero(child1)
+    set_start_time_zero(child2)
 
     return child1, child2
 
@@ -331,6 +347,7 @@ def mutation(solution, mutation_rate):
                 0, max(mutated_solution.values()) + 1
             )
 
+    set_start_time_zero(mutated_solution)
     return mutated_solution
 
 
@@ -354,8 +371,6 @@ def selection(r: RCPSP, population, pop_size, tournament_size, tournament_accept
 def local_search(
     r: RCPSP, solution: Dict[int, int], max_iterations: int
 ) -> Dict[int, int]:
-
-    horizon = 181
 
     current_solution = solution.copy()
     best_solution = solution.copy()
@@ -392,7 +407,7 @@ def local_search(
 
         # Compute the fitness of the new solution and decide whether to accept it
         current_fitness = fitness(r, current_solution)
-        if current_fitness < best_fitness:
+        if current_fitness > best_fitness:
             best_solution = current_solution.copy()
             best_fitness = current_fitness
 
@@ -400,4 +415,5 @@ def local_search(
         else:
             current_solution = best_solution.copy()
 
-    return best_solution
+    set_start_time_zero(best_solution)
+    return best_solution, best_fitness
