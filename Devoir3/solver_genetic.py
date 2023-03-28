@@ -21,15 +21,15 @@ def solve(rcpsp: RCPSP) -> List[int]:
             as the tour starts from the depot
     """
 
-    time_limit = 5 * 60  # 20 * 60
+    time_limit = 60 * 5  # 20 * 60
 
-    pop_size = 300
-    mutation_rate = 1 / pop_size
+    pop_size = 10
+    mutation_rate = 0.05
     max_iter_local_search = 200
-    tournament_size = 20
-    tournament_accepted = 10
+    tournament_size = 5
+    tournament_accepted = 2
     num_generations = 10
-    no_progress_generations = 2
+    no_progress_generations = 5
     elite_size = 1
 
     return genetic_algorithm(
@@ -113,21 +113,20 @@ def genetic_algorithm(
             # Update the best solution found so far
             fittest_solution = population[0]
             fittest_score = fitness(r, fittest_solution)
-            
+
             if fittest_score > best_fitness_no_improvement:
-                best_fitness_no_improvement = fittest_score
-                print("ok")
+
                 improved_solution, improved_solution_score = local_search(
                     r, fittest_solution, max_iterations=max_iter_local_search
                 )
-
                 if improved_solution_score > best_fitness:
-                    print(
-                        "BEST SOLUTION FOUND : Cost ",
-                        r.get_solution_cost(improved_solution),
-                    )
                     best_fitness = improved_solution_score
-                    best_valid_solution = improved_solution.copy()
+                    best_solution = improved_solution.copy()
+                    if best_fitness > 0:
+                        print(
+                            "BEST SOLUTION FOUND : Cost ",
+                            r.get_solution_cost(best_solution),
+                        )
 
                 improvement_timer = 0
 
@@ -142,13 +141,7 @@ def genetic_algorithm(
                 time_over = True
                 break
 
-    # If a valid solution has been found
-    if best_valid_solution:
-        print("Cost", r.get_solution_cost(best_valid_solution))
-        print("Solution valid ", r.verify_solution(best_valid_solution))
-        return best_valid_solution
-    else:
-        return best_solution
+    return best_solution
 
 
 ###################################### Evaluation Functions ####################################
@@ -227,7 +220,7 @@ def set_start_time_zero(solution):
 
 
 def generate_chromosome(r: RCPSP):
-    horizon = 181
+    horizon = 90
     solution = {}
 
     # Sort tasks by their order in the graph, assuming the tasks are numbered sequentially
