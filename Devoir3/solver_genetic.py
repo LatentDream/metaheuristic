@@ -122,11 +122,11 @@ def genetic_algorithm(
                 if improved_solution_score > best_fitness:
                     best_fitness = improved_solution_score
                     best_solution = improved_solution.copy()
-                    if best_fitness > 0:
-                        print(
-                            "BEST SOLUTION FOUND : Cost ",
-                            r.get_solution_cost(best_solution),
-                        )
+                    # if best_fitness > 0:
+                    #     print(
+                    #         "BEST SOLUTION FOUND : Cost ",
+                    #         r.get_solution_cost(best_solution),
+                    #     )
 
                 improvement_timer = 0
 
