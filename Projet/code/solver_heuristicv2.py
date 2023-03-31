@@ -47,7 +47,7 @@ def solve_heuristic(eternity_puzzle):
                 or i == eternity_puzzle.board_size - 1
                 or j == eternity_puzzle.board_size - 1
             ):
-                print(edges_and_corners)
+                # print(edges_and_corners)
 
                 best_cost = math.inf
                 for piece in edges_and_corners:
@@ -99,8 +99,8 @@ def solve_heuristic(eternity_puzzle):
         for piece in row:
             solution.append(piece)
 
-    print(eternity_puzzle.piece_list)
-    print(solution)
+    # print(eternity_puzzle.piece_list)
+    # print(solution)
 
     return (solution, eternity_puzzle.get_total_n_conflict(solution))
 

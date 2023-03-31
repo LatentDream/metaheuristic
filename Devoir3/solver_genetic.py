@@ -114,7 +114,7 @@ def genetic_algorithm(
             fittest_score = fitness(r, fittest_solution)
 
             # print(fittest_score)
-            if fittest_score > best_fitness_no_improvement:
+            if fittest_score >= best_fitness_no_improvement:
 
                 improved_solution, improved_solution_score = local_search(
                     r, fittest_solution, max_iterations=max_iter_local_search

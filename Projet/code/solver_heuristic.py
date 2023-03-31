@@ -2,6 +2,16 @@ import numpy as np
 import math
 import copy
 
+GRAY = 0
+BLACK = 23
+RED = 24
+WHITE = 25
+
+NORTH = 0
+SOUTH = 1
+WEST = 2
+EAST = 3
+
 
 def solve_heuristic(eternity_puzzle):
     """
@@ -32,17 +42,6 @@ def solve_heuristic(eternity_puzzle):
         remaining_piece.remove(best_piece)
 
     return (solution, eternity_puzzle.get_total_n_conflict(solution))
-
-
-GRAY = 0
-BLACK = 23
-RED = 24
-WHITE = 25
-
-NORTH = 0
-SOUTH = 1
-WEST = 2
-EAST = 3
 
 
 def get_current_cost(solution, eternity_puzzle):
