@@ -16,6 +16,8 @@ def parse_arguments():
     parser.add_argument("--infile", type=str, default="instances/instance_A_30.txt")
     parser.add_argument("--outfile", type=str, default="solution")
     parser.add_argument("--visualisation_file", type=str, default="visualization")
+    parser.add_argument("--display", type=bool, default=True)
+
 
     return parser.parse_args()
 
@@ -57,9 +59,10 @@ if __name__ == "__main__":
     solving_time = round((time.time() - start_time) / 60, 2)
 
     # You can disable the display if you do not want to generate the visualization
-    rcpsp.display_solution(solution, args.visualisation_file)
-    #
-    rcpsp.save_solution(solution, args.outfile)
+    plot_name = args.visualisation_file if args.visualisation_file != "visualization" else f"output/visualization_{args.infile.replace('instances/', '').replace('.txt', '')}"
+    rcpsp.display_solution(solution, plot_name, args.display)
+
+    rcpsp.save_solution(solution, f"output/{args.outfile}_{args.infile.replace('instances/', '').replace('.txt', '')}")
     print("***********************************************************")
     print("[INFO] Solution obtained")
     print("[INFO] Execution time : %s minutes" % solving_time)

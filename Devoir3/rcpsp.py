@@ -94,7 +94,7 @@ class RCPSP:
 
         return graph
 
-    def display_solution(self, solution: Dict, plot_name: str = ""):
+    def display_solution(self, solution: Dict, plot_name: str = "", show=True):
         """Displays a solution with 2 plots:
         -a gantt chart that represents the relations between predecessors and successors
         -a plot indicating the current ressource utilization at all time points
@@ -102,10 +102,10 @@ class RCPSP:
             solution (dict): A dictionary mapping task_ids to their start time.
             plot_name (str): name of plots
         """
-        self.plot_resource_utilization(solution, plot_name)
-        self.create_gantt_chart(solution, plot_name)
+        self.plot_resource_utilization(solution, plot_name, show)
+        self.create_gantt_chart(solution, plot_name, show)
 
-    def create_gantt_chart(self, solution, plot_name=""):
+    def create_gantt_chart(self, solution, plot_name="", show=True):
         """
         Create a Gantt chart with arrows connecting tasks based on their successors in the graph.
 
@@ -160,9 +160,10 @@ class RCPSP:
 
         if plot_name:
             plt.savefig(plot_name + "_gantt.png", bbox_inches="tight")
-        plt.show()
+        if show:
+            plt.show()
 
-    def plot_resource_utilization(self, solution, plot_name=""):
+    def plot_resource_utilization(self, solution, plot_name="", show=True):
         """
         Create a bar chart for ressource utilization at all time points
 
@@ -229,7 +230,8 @@ class RCPSP:
         plt.tight_layout()
         if plot_name:
             plt.savefig(plot_name + "_resources.png", bbox_inches="tight")
-        plt.show()
+        if show:
+            plt.show()
 
     def verify_solution(self, solution):
         # min start time is 0
