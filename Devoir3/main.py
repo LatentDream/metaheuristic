@@ -6,7 +6,7 @@ import GridSearch
 import solver_LNS
 import time
 from rcpsp import RCPSP
-
+import os
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -58,11 +58,15 @@ if __name__ == "__main__":
 
     solving_time = round((time.time() - start_time) / 60, 2)
 
+    base_path = f"output/{args.agent}"
+    if not os.path.exists(base_path):
+        os.makedirs(base_path)
+
     # You can disable the display if you do not want to generate the visualization
-    plot_name = args.visualisation_file if args.visualisation_file != "visualization" else f"output/visualization_{args.infile.replace('instances/', '').replace('.txt', '')}"
+    plot_name = args.visualisation_file if args.visualisation_file != "visualization" else f"{base_path}/visualization_{args.infile.replace('instances/', '').replace('.txt', '')}"
     rcpsp.display_solution(solution, plot_name, args.display)
 
-    rcpsp.save_solution(solution, f"output/{args.outfile}_{args.infile.replace('instances/', '').replace('.txt', '')}")
+    rcpsp.save_solution(solution, f"{base_path}/{args.outfile}_{args.infile.replace('instances/', '').replace('.txt', '')}")
     print("***********************************************************")
     print("[INFO] Solution obtained")
     print("[INFO] Execution time : %s minutes" % solving_time)
