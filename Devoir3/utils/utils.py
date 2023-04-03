@@ -33,7 +33,7 @@ def generate_random_valid_solution(r: RCPSP):
             current_time += 1
             continue
     
-        for _ in range(len(available_job)):
+        for _ in range(max(int(len(available_job)/2), 1)):
             job_idx = random.randrange(0, len(available_job))
             job_id = available_job[job_idx]
             ressources_needed_to_start_job = np.array(r.graph.nodes[job_id]["resources"])
