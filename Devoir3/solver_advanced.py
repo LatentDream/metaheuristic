@@ -26,14 +26,17 @@ def algo_name(r: RCPSP, time_limit=10*60):
     start_time = time()
     tic = start_time
 
-    initial_solution = generate_random_valid_solution(r)
 
-    # with tqdm(total=time_limit) as progress_bar:
-    #     while (tac:=time()) - start_time < time_limit:
-    #         progress_bar.update(tac - tic)
-    #         tic = tac
-    #         break
-    #         sleep(2)
+    with tqdm(total=time_limit) as progress_bar:
+
+        initial_solution = generate_random_valid_solution(r)
+
+        if (tac:=time()) - start_time < time_limit:
+            progress_bar.update(tac - tic)
+            tic = tac
+        else:
+            print("\nTime out - Returning current best\n")
+            return initial_solution
 
     print(initial_solution)
     return initial_solution
