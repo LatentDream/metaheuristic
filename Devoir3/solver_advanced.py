@@ -1,7 +1,7 @@
 from typing import List, Tuple
 from rcpsp import RCPSP
 from time import time, sleep
-from solver_VND import VND
+from solver_VND import solve as solve_VND
 
 def solve(rcpsp: RCPSP) -> List[int]:
     """Advanced solver for the prize-collecting Steiner tree problem.
@@ -15,5 +15,5 @@ def solve(rcpsp: RCPSP) -> List[int]:
             as the tour starts from the depot
     """
     # Add here your solving process here
-    return VND(rcpsp, time_limit=30)
+    return solve_VND(rcpsp)
 

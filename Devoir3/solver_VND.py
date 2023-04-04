@@ -5,44 +5,86 @@ from time import time, sleep
 from tqdm import tqdm
 import random
 import numpy as np
+from utils.tree_node import TreeNode
 from utils.utils import generate_random_valid_solution
 
 
-def VND(r: RCPSP, time_limit=10*60):
+def solve(rcpsp: RCPSP):
+
+    time_limit = 2 * 60
+
+    # return VND(rcpsp, time_limit, build_neighbor_priority_with_stochasticity)
+    return VND(rcpsp, time_limit, build_neighbor_priority)
+
+
+def VND(r: RCPSP, time_limit, build_neighbor):
 
     start_time = time()
     tic = start_time
 
     with tqdm(total=time_limit) as progress_bar:
 
-        # Initial solution
-        solution = generate_random_valid_solution(r)
-        print(f"Solution initial: {solution}")
-        # Build the neighborhood priority list (priority to node that have the most sucessors)
-        nodes = sorted(list(r.graph.nodes))
-        del nodes[0]
-        node_neighbor = sorted([(node_id, len(list(r.graph.successors(node_id)))) for node_id in nodes], key=lambda x: -x[1])
-        node_neighbor = [element[0] for element in node_neighbor]
+        best_solution = generate_random_valid_solution(r)
 
-        # Parameter
-        k = 4
-        k_max = len(node_neighbor) - 1
+        while True:
 
-        while k != k_max:
-        
-            new_solution = local_search(r, solution, k, node_neighbor)
-            print(f"New Solution initial: {solution}")
+            # Initial solution
+            solution = generate_random_valid_solution(r)
+            node_neighbor = build_neighbor(r)
 
-            solution, k = neighborhood_change(r, solution, new_solution, k)
+            # Parameter
+            k = 0
+            k_max = len(node_neighbor) - 1
+
+            while k != k_max:
+            
+                new_solution = local_search(r, solution, k, node_neighbor)
+                solution, k = neighborhood_change(r, solution, new_solution, k)
+                
+            if r.verify_solution(solution): 
+                if r.get_solution_cost(solution) < r.get_solution_cost(best_solution):
+                    best_solution = copy(solution)
+            else:
+                print("/!\ Warning: invalid solution detected /!\ ")
             
             if (tac:=time()) - start_time < time_limit:
                 progress_bar.update(tac - tic)
                 tic = tac
             else:
-                print("\nTime out - Returning current best\n")
-                return solution
+                break
+            break
 
-    return solution
+    return best_solution
+
+
+def build_random_neighbor_priority(r: RCPSP):
+    nodes = [i+1 for i in range(1, r.graph.number_of_nodes())]
+    priority_neighbord = []
+    for _ in range(len(nodes)):
+        nodes_idx = random.randrange(0, len(nodes))
+        priority_neighbord.append(nodes[nodes_idx])
+        del nodes[nodes_idx]
+    return priority_neighbord
+
+
+def build_neighbor_priority_with_stochasticity(r: RCPSP):
+    # Build the neighborhood priority list (priority to node that have the most sucessors)
+    nodes = [i+1 for i in range(1, r.graph.number_of_nodes())]
+    node_neighbor = sorted([(node_id, len(list(r.graph.successors(node_id))) + np.random.uniform(0.0, 0.5) ) for node_id in nodes], key=lambda x: -x[1])
+    node_neighbor = [element[0] for element in node_neighbor]
+    return node_neighbor
+
+
+def build_neighbor_priority(r: RCPSP):
+    # Build a acyclic graph representaiton of the job dependencies
+    nodes = {i: TreeNode(i) for i in range(1, r.graph.number_of_nodes()+1)}
+    for i in range(1, r.graph.number_of_nodes() + 1):
+        children_id = r.graph.successors(i)
+        nodes[i].add_children(*[nodes[child_id] for child_id in children_id])
+    # fin number of job waiting for the job_i to be done
+    node_priority = [(i, nodes[i].depth()) for i in range(1, r.graph.number_of_nodes()+1)]
+    node_neighbor = sorted(node_priority, key=lambda x: x[1])
+    return [element[0] for element in node_neighbor]   
 
 
 def neighborhood_change(r: RCPSP, solution: Dict[int, int], new_solution: Dict[int, int], k: int):
@@ -61,8 +103,8 @@ def local_search(r: RCPSP, solution: Dict[int, int], k: int, job_neighbor: list)
     # Build solution up to job k
     new_solution = {}
     time_step_to_job_id = {}
-    for job_id in solution.keys():
-        if (job_starting_time:=solution[job_id]) < original_neighbor_starting_time:
+    for job_id in range(1, len(solution.keys())+1):
+        if (job_starting_time:=solution[job_id]) <= original_neighbor_starting_time and job_id != neighbor_job_id:
             new_solution[job_id] = job_starting_time
             if job_starting_time in time_step_to_job_id.keys():
                 time_step_to_job_id[job_starting_time].append(job_id)
@@ -73,7 +115,7 @@ def local_search(r: RCPSP, solution: Dict[int, int], k: int, job_neighbor: list)
     current_time = 0
     available_ressources = np.array(r.resource_availabilities)
     available_ressources_through_time = [copy(available_ressources) for _ in range(original_neighbor_starting_time)]
-    jobs_done_through_time = [set() for _ in range(original_neighbor_starting_time)]
+    jobs_done_through_time = [set() for _ in range(original_neighbor_starting_time+1)]
 
 
     # Step #1: Find which ressources are available and which jobs is done at each timestep until neighbor_starting_time
@@ -95,9 +137,9 @@ def local_search(r: RCPSP, solution: Dict[int, int], k: int, job_neighbor: list)
         jobs_done_through_time[i].update(job_done)
         job_done.update(jobs_done_through_time[i])
 
-
+    current_time = 0
     # Step #2: Try to insert the neighbor_job_id before it's inital starting time without moving the other node
-    while current_time < original_neighbor_starting_time:
+    while current_time <= original_neighbor_starting_time:
         # Check the precedence constraints
         if set(r.graph.predecessors(neighbor_job_id)).issubset(jobs_done_through_time[current_time]):
             # Check if there is enough ressource available
@@ -108,7 +150,10 @@ def local_search(r: RCPSP, solution: Dict[int, int], k: int, job_neighbor: list)
             if can_be_inserted_here:
                 new_solution[neighbor_job_id] = current_time
                 if current_time in time_step_to_job_id.keys():
-                    time_step_to_job_id[current_time].append(neighbor_job_id)
+                    if neighbor_job_duration == 0:
+                        time_step_to_job_id[current_time].insert(0, neighbor_job_id)
+                    else:
+                        time_step_to_job_id[current_time].append(neighbor_job_id)
                 else:
                     time_step_to_job_id[current_time] = [neighbor_job_id]
                 break
@@ -129,7 +174,6 @@ def local_search(r: RCPSP, solution: Dict[int, int], k: int, job_neighbor: list)
     available_ressources = np.array(r.resource_availabilities)
     locked_ressources = dict()
     next_job = dict()
-    current_running_job_blocks = set()
     # Do all the jobs that are already in new_solution
     while current_time <= original_neighbor_starting_time:
 
@@ -142,7 +186,6 @@ def local_search(r: RCPSP, solution: Dict[int, int], k: int, job_neighbor: list)
             new_available_job = next_job[current_time]
             available_job += new_available_job
             del next_job[current_time]
-            current_running_job_blocks.difference_update(set(new_available_job))
 
         if current_time in time_step_to_job_id.keys():
             # Launch the jobs
@@ -160,16 +203,13 @@ def local_search(r: RCPSP, solution: Dict[int, int], k: int, job_neighbor: list)
                         locked_ressources[locked_until] = ressources_needed_to_start_job
                     if locked_until in next_job.keys():
                         next_job[locked_until] += next_available_job
-                        current_running_job_blocks.update(next_available_job)
                     else:
                         next_job[locked_until] = next_available_job
-                        current_running_job_blocks.update(next_available_job)
                 else:
                     available_job += next_available_job
                 del available_job[available_job.index(job_id)]
         current_time += 1
 
-    print(new_solution)
 
     # Do the other job
     while len(new_solution.keys()) != len(solution.keys()):
@@ -183,43 +223,43 @@ def local_search(r: RCPSP, solution: Dict[int, int], k: int, job_neighbor: list)
             new_available_job = next_job[current_time]
             available_job += new_available_job
             del next_job[current_time]
-            current_running_job_blocks.difference_update(set(new_available_job))
 
-        for _ in range(max(int(len(available_job) / 2), 1)):
-            job_idx = random.randrange(0, len(available_job))
-            job_id = available_job[job_idx]
-            if job_id in new_solution.keys():
-                del available_job[job_idx]
-                continue
-            ressources_needed_to_start_job = np.array(r.graph.nodes[job_id]["resources"])
+        if len(available_job) > 0:
+            for _ in range(max(int(len(available_job) / 2), 1)):
+                job_idx = random.randrange(0, len(available_job))
+                job_id = available_job[job_idx]
+                if job_id in new_solution.keys():
+                    del available_job[job_idx]
+                    continue
+                ressources_needed_to_start_job = np.array(r.graph.nodes[job_id]["resources"])
 
-            # Check the precedence constraints
-            precedent_jobs = set(r.graph.predecessors(job_id))
-            constraints_violated = not precedent_jobs.issubset(new_solution.keys())
-            constraints_violated |= bool(precedent_jobs.intersection(current_running_job_blocks))
-            if constraints_violated:
-                continue
+                # Check the precedence constraints
+                precedent_jobs = set(r.graph.predecessors(job_id))        
+                constraints_violated = not all([job in new_solution.keys() and new_solution[job] + r.graph.nodes[job]["duration"] < current_time for job in precedent_jobs])
+                if constraints_violated:
+                    continue
 
-            # Launch the job
-            if min(available_ressources - ressources_needed_to_start_job) >= 0:
-                new_solution[job_id] = current_time
-                duration = r.graph.nodes[job_id]["duration"]
-                next_available_job = list(r.graph.successors(job_id))
-                del available_job[job_idx]
-                # Lock the ressource
-                if duration > 0:
-                    locked_until = current_time + duration
-                    available_ressources -= ressources_needed_to_start_job
-                    if locked_until in locked_ressources.keys():
-                        locked_ressources[locked_until] += ressources_needed_to_start_job
+                # Launch the job
+                if min(available_ressources - ressources_needed_to_start_job) >= 0:
+                    new_solution[job_id] = current_time
+                    duration = r.graph.nodes[job_id]["duration"]
+                    next_available_job = list(r.graph.successors(job_id))
+                    del available_job[job_idx]
+                    # Lock the ressource
+                    if duration > 0:
+                        locked_until = current_time + duration
+                        available_ressources -= ressources_needed_to_start_job
+                        if locked_until in locked_ressources.keys():
+                            locked_ressources[locked_until] += ressources_needed_to_start_job
+                        else:
+                            locked_ressources[locked_until] = ressources_needed_to_start_job
+                        if locked_until in next_job.keys():
+                            next_job[locked_until] += next_available_job
+                        else:
+                            next_job[locked_until] = next_available_job
+
                     else:
-                        locked_ressources[locked_until] = ressources_needed_to_start_job
-                    if locked_until in next_job.keys():
-                        next_job[locked_until] += next_available_job
-                    else:
-                        next_job[locked_until] = next_available_job
-                else:
-                    available_job += next_available_job
+                        available_job += next_available_job
         
         current_time += 1
 
