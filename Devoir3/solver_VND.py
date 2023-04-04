@@ -11,7 +11,7 @@ from utils.utils import generate_random_valid_solution, find_ressources_used_at_
 
 def solve(rcpsp: RCPSP):
 
-    time_limit = 2 * 60
+    time_limit = 20 * 60
 
     # return VND(rcpsp, time_limit, build_neighbor_priority_with_stochasticity)
     return VND(rcpsp, time_limit, build_neighbor_priority)
