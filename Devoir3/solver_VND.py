@@ -6,7 +6,7 @@ from tqdm import tqdm
 import random
 import numpy as np
 from utils.tree_node import TreeNode
-from utils.utils import generate_random_valid_solution
+from utils.utils import generate_random_valid_solution, find_ressources_used_at_each_timestep
 
 
 def solve(rcpsp: RCPSP):
@@ -37,9 +37,9 @@ def VND(r: RCPSP, time_limit, build_neighbor):
             k_max = len(node_neighbor) - 1
 
             while k != k_max:
-            
                 new_solution = local_search(r, solution, k, node_neighbor)
-                solution, k = neighborhood_change(r, solution, new_solution, k)
+                optimised_solution = optimise(r, new_solution)
+                solution, k = neighborhood_change(r, solution, optimised_solution, k)
                 
             if r.verify_solution(solution): 
                 if r.get_solution_cost(solution) < r.get_solution_cost(best_solution):
@@ -52,7 +52,6 @@ def VND(r: RCPSP, time_limit, build_neighbor):
                 tic = tac
             else:
                 break
-            break
 
     return best_solution
 
@@ -267,4 +266,55 @@ def local_search(r: RCPSP, solution: Dict[int, int], k: int, job_neighbor: list)
 
     return new_solution
 
+
+def optimise(r: RCPSP, solution: Dict[int, int]):
+
+    # Find which task is starting at each timestep (reverse the dictionnary)
+    time_to_job = {}
+    for job in solution.keys():
+        if solution[job] in time_to_job:
+            if r.graph.nodes[job]['duration'] == 0:
+                time_to_job[solution[job]].insert(0, job)
+            else:
+                time_to_job[solution[job]].append(job)
+        else:
+            time_to_job[solution[job]] = [job]
+
+    # Squeeze the most at the of the 
+    current_time = 0
+    optimised_solution = {}
+
+    while len(optimised_solution.keys()) != len(solution.keys()):
+
+        if current_time in time_to_job:
+            for job in time_to_job[current_time]:
+                # Try to start the job earlier
+                insert_time = current_time - 1
+                earliest_insert_time_found = current_time
+                available_ressources_through_time = find_ressources_used_at_each_timestep(r, optimised_solution, current_time)
+                job_ressources = r.graph.nodes[job]['resources']
+                while insert_time >= 0:
+
+                    # Check the precedence constraint
+                    constraint_violated = False
+                    precendent_jobs = r.graph.predecessors(job)
+                    for precendent_job in precendent_jobs:
+                        duration = r.graph.nodes[precendent_job]['duration']
+                        constraint_violated |= optimised_solution[precendent_job] + duration > insert_time # Todo: Verif if's right
+                    if constraint_violated:
+                        break
+
+                    # Check ressources availability
+                    if min(available_ressources_through_time[insert_time] - job_ressources) >= 0:
+                        earliest_insert_time_found = insert_time
+                    else:
+                        break
+
+                    insert_time -= 1
+                
+                optimised_solution[job] = earliest_insert_time_found
+
+        current_time += 1     
+
+    return optimised_solution
 
