@@ -2,7 +2,6 @@ import argparse
 import solver_naive
 import solver_advanced
 import solver_genetic
-import GridSearch
 import solver_LNS
 import time
 from rcpsp import RCPSP

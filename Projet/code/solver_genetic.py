@@ -2,19 +2,19 @@ import numpy as np
 from copy import deepcopy
 import time
 import random
-from utils import *
+from utils.utils import *
 from math import inf
-from typing import List, Dict
-from math import ceil, floor
+from typing import Dict
 import time
 import random
 import numpy as np
 import networkx as nx
 from copy import deepcopy
 from math import inf
-import solver_heuristicv2
 import solver_heuristic
+import solver_local_search
 
+file_names = {"A": 16, "B": 49, "C": 64, "D": 81, "E": 100, "complet": 256}
 
 GRAY = 0
 BLACK = 23
@@ -37,20 +37,20 @@ def solve_advanced(e: EternityPuzzle):
 
     time_limit = 60 * 5  # 20 * 60
 
-    pop_size = 1000
-    mutation_rate = 0.05
-    max_iter_local_search = 20
+    pop_size = 300
+    mutation_rate = 0.5
+    max_time_local_search = 1
     tournament_size = 100
-    tournament_accepted = 20
-    num_generations = 2000
-    no_progress_generations = 30
-    elite_size = 2
+    tournament_accepted = 5
+    num_generations = 1000
+    no_progress_generations = 5
+    elite_size = 10
 
     return genetic_algorithm(
         e,
         num_generations=num_generations,
         no_progress_generations=no_progress_generations,
-        max_iter_local_search=max_iter_local_search,
+        max_time_local_search=max_time_local_search,
         elite_size=elite_size,
         mutation_rate=mutation_rate,
         tournament_size=tournament_size,
@@ -64,7 +64,7 @@ def genetic_algorithm(
     e: EternityPuzzle,
     num_generations,
     no_progress_generations,
-    max_iter_local_search,
+    max_time_local_search,
     elite_size,
     mutation_rate,
     tournament_size,
@@ -76,7 +76,7 @@ def genetic_algorithm(
     start_time = time.time()
     best_fitness_no_improvement = -inf
     best_fitness = -inf
-    improvement_timer = 0
+    improvement_timer = 1
     time_over = False
 
     while not time_over:
@@ -111,8 +111,6 @@ def genetic_algorithm(
                     parent2,
                     random.choice([i for i in range(2, e.board_size)]),
                 )
-                print(e.verify_solution(parent1))
-                print(e.verify_solution(child1))
 
                 child1 = mutation(e, child1, mutation_rate)
                 child2 = mutation(e, child2, mutation_rate)
@@ -137,12 +135,11 @@ def genetic_algorithm(
             # Update the best solution found so far
             fittest_solution = population[0]
             fittest_score = fitness(e, fittest_solution)
-
-            # print(fittest_score)
-            if fittest_score >= best_fitness_no_improvement:
+            print(fittest_score)
+            if fittest_score > best_fitness_no_improvement:
 
                 improved_solution, improved_solution_score = local_search(
-                    e, fittest_solution, max_iterations=max_iter_local_search
+                    e, fittest_solution, max_time_local_search=max_time_local_search
                 )
                 if improved_solution_score > best_fitness:
                     best_fitness = improved_solution_score
@@ -151,11 +148,16 @@ def genetic_algorithm(
                         "BEST SOLUTION FOUND : Cost ",
                         e.get_total_n_conflict(best_solution),
                     )
+
+                    for instance, length in file_names.items():
+                        if length == len(best_solution):
+                            a = instance
+
                     visualize(
                         e,
                         best_solution,
-                        "visualisation/Cost {}".format(
-                            e.get_total_n_conflict(best_solution)
+                        "visualisation/{}/Cost {}".format(
+                            a, e.get_total_n_conflict(best_solution)
                         ),
                     )
 
@@ -186,7 +188,7 @@ def fitness(e: EternityPuzzle, solution):
 
 
 # Function to generate a random solution
-def generate_chromosome(e: EternityPuzzle):
+def generate_random_solution(e: EternityPuzzle):
 
     solution = []
     remaining_piece = deepcopy(e.piece_list)
@@ -237,7 +239,7 @@ def generate_population(e: EternityPuzzle, pop_size, elite_size):
         population.append(generate_fit_chromosome(e))
 
     for _ in range(pop_size):
-        population.append(generate_chromosome(e))
+        population.append(generate_random_solution(e))
     return population
 
 
@@ -328,54 +330,10 @@ def selection(
 
 
 def local_search(
-    e: EternityPuzzle, solution: Dict[int, int], max_iterations: int
+    e: EternityPuzzle, solution: Dict[int, int], max_time_local_search
 ) -> Dict[int, int]:
 
-    return solution, fitness(e, solution)
-
-    # todo
-
-    current_solution = solution.copy()
-    best_solution = solution.copy()
-    best_fitness = fitness(e, best_solution)
-
-    for _ in range(max_iterations):
-
-        # Choose a random job and a new start time for it
-        job_id = random.choice(list(e.graph.nodes))
-
-        if len(list(e.graph.predecessors(job_id))) > 0:
-            earliest_start_time = max(
-                solution[p] + e.graph.nodes[job_id]["duration"]
-                for p in e.graph.predecessors(job_id)
-            )
-        else:
-            earliest_start_time = solution[job_id] - e.graph.nodes[job_id]["duration"]
-
-        if len(list(r.graph.successors(job_id))) > 0:
-            latest_start_time = min(
-                solution[s] - e.graph.nodes[job_id]["duration"]
-                for s in e.graph.successors(job_id)
-            )
-        else:
-            latest_start_time = solution[job_id] + e.graph.nodes[job_id]["duration"]
-
-        if latest_start_time < earliest_start_time:
-            continue
-
-        new_start_time = random.randint(earliest_start_time, latest_start_time)
-
-        # Update the solution with the new start time
-        current_solution[job_id] = new_start_time
-
-        # Compute the fitness of the new solution and decide whether to accept it
-        current_fitness = fitness(r, current_solution)
-        if current_fitness > best_fitness:
-            best_solution = current_solution.copy()
-            best_fitness = current_fitness
-
-        # If the new solution is not accepted, revert the change
-        else:
-            current_solution = best_solution.copy()
-
-    return best_solution, best_fitness
+    best_solution, cost = solver_local_search.local_search(
+        e, solution, max_time_local_search
+    )
+    return best_solution, -cost

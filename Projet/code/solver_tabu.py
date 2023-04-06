@@ -11,6 +11,7 @@ from copy import deepcopy
 import time
 import random
 from utils.utils import *
+from math import inf
 
 ########################### PARAMETERS ####################################
 tabu_length = 360  # Length of tabu list
@@ -31,123 +32,82 @@ search_time_border = 10
 search_time = 60 * 2 - search_time_border
 
 
-def solve_advanced(eternity_puzzle):
+def solve_advanced(e):
     """
     Your solver for the problem
-    :param eternity_puzzle: object describing the input
+    :param e: object describing the input
     :return: a tuple (solution, cost) where solution is a list of the pieces (rotations applied) and
         cost is the cost of the solution
     """
 
     # Phase I : Border Construction
-    best_border, remaining_piece = TabuSearch_border(eternity_puzzle)
-    print(remaining_piece)
+    best_border, _ = TabuSearch_border(e)
+    print(best_border)
+    remaining_pieces = Remaining_Pieces(e, best_border)
+
+    visualize(e, best_border, "Border_after_tabu")
 
     # Phase II : Full Construction
     best_solution, best_solution_cost = TabuSearch_inner(
-        eternity_puzzle, best_border, remaining_piece
+        e, best_border, remaining_pieces
     )
 
     return best_solution, best_solution_cost
 
 
-def TabuSearch_border(e: EternityPuzzle, init_solution, tabu_list_size, max_iterations):
-    best_solution = init_solution
-    best_cost = e.cost(init_solution)
+# Tabu Search for the border of the board
+def TabuSearch_border(e: EternityPuzzle):
+
+    # Randomly initialize the border
+    current_solution = generate_random_solution(e)
+    best_solution = current_solution
+    best_cost = getBorderCost(e, best_solution)
     tabu_list = []
-    tabu_list.append(init_solution)
+    tabu_list.append(best_solution)
 
-    for i in range(max_iterations):
-        neighborhood = e.get_neighbors_border(best_solution)
+    for _ in range(I1):
+        # Initialize the best candidate for this iteration
         best_border_candidate = None
-        best_border_candidate_cost = float("inf")
+        best_border_candidate_cost = inf
 
+        # Generate the neighborhood
+        neighborhood = getNeighbors_border(e, current_solution)
+
+        # Evaluate each candidate solution in the neighborhood
         for candidate in neighborhood:
-            candidate_cost = e.cost(candidate)
-            if candidate in tabu_list:
+
+            # Check if the candidate solution is tabu
+            if is_tabu_type1(tabu_list, candidate) or is_tabu_type2(
+                tabu_list, candidate
+            ):
                 continue
+
+            # Evaluate the candidate solution
+            candidate_cost = getBorderCost(e, candidate)
+
+            # Update the best candidate if necessary
             if candidate_cost < best_border_candidate_cost:
                 best_border_candidate = candidate
                 best_border_candidate_cost = candidate_cost
 
-        if best_border_candidate is None:
-            break
+        # Update the current solution and best solution if necessary
+        if best_border_candidate_cost < best_cost:
+            current_solution = best_border_candidate
+            best_solution = best_border_candidate
+            best_cost = best_border_candidate_cost
 
-        best_solution = best_border_candidate
-        best_cost = best_border_candidate_cost
-        tabu_list.append(best_solution)
-
-        if len(tabu_list) > tabu_list_size:
+        if len(tabu_list) > tabu_length:
             tabu_list.pop(0)
+        tabu_list.append(current_solution)
 
     return best_solution, best_cost
 
 
-# Tabu Search for the border of the board
-def TabuSearch_border(eternity_puzzle):
-
-    # Randomly initialize the border
-    best_border = generate_random_solution(eternity_puzzle)
-    best_border_cost = getBorderCost(best_border, eternity_puzzle)
-    best_border_candidate = best_border
-    visualize(eternity_puzzle, best_border, "random_border")
-
-    # Simple Tabu Search for the border
-    tabuList = [best_border]
-
-    elapsed_time = start_time - time.time()
-    while elapsed_time < search_time_border:
-
-        neighborhood = getNeighbors_border(best_border_candidate, eternity_puzzle)
-
-        best_border_candidate = neighborhood[0]
-        best_border_candidate_cost = getBorderCost(
-            best_border_candidate, eternity_puzzle
-        )
-
-        for border_candidate in neighborhood:
-            a = getBorderCost(border_candidate, eternity_puzzle)
-            if (not border_candidate in tabuList) and (a < best_border_candidate_cost):
-                best_border_candidate = border_candidate
-                best_border_candidate_cost = a
-
-        if best_border_candidate_cost < best_border_cost:
-            best_border = best_border_candidate
-            best_border_cost = best_border_candidate_cost
-
-        tabuList.append(best_border_candidate)
-
-        if len(tabuList) > tabu_length:
-            tabuList = tabuList[1:]
-
-        if best_border_cost == 0:
-            return best_border, best_border_cost
-
-        elapsed_time = time.time() - start_time
-
-    # List of all the pieces that are not already used for the border
-    remaining_piece = []
-    for piece in eternity_puzzle.piece_list:
-        flag = False
-        for rotated_piece in eternity_puzzle.generate_rotation(piece):
-            if rotated_piece in best_border:
-                flag = True
-                break
-        if not flag:
-            remaining_piece.append(piece)
-
-    visualize(eternity_puzzle, best_border, "border_after_tabu")
-
-    return best_border, remaining_piece
-
-
 # Tabu Search for the inner pieces of the board
-def TabuSearch_inner(eternity_puzzle, best_border, remaining_piece):
+def TabuSearch_inner(e, best_border, remaining_piece):
 
-    best_solution = generate_random_innner_solution(
-        eternity_puzzle, best_border, remaining_piece
-    )
-    best_solution_cost = eternity_puzzle.get_total_n_conflict(best_solution)
+    best_solution = generate_random_innner_solution(e, best_border, remaining_piece)
+    best_solution_cost = e.get_total_n_conflict(best_solution)
     best_candidate = best_solution
 
     tabuList = [best_solution]
@@ -155,13 +115,13 @@ def TabuSearch_inner(eternity_puzzle, best_border, remaining_piece):
     elapsed_time = start_time - time.time()
     while elapsed_time < search_time:
 
-        neighborhood = getNeighbors_inner(best_candidate, eternity_puzzle)
+        neighborhood = getNeighbors_inner(best_candidate, e)
 
         best_candidate = neighborhood[0]
-        best_candidate_cost = eternity_puzzle.get_total_n_conflict(best_candidate)
+        best_candidate_cost = e.get_total_n_conflict(best_candidate)
 
         for candidate in neighborhood:
-            a = eternity_puzzle.get_total_n_conflict(candidate)
+            a = e.get_total_n_conflict(candidate)
             if (not candidate in tabuList) and (a < best_candidate_cost):
                 best_candidate = candidate
                 best_candidate_cost = a
@@ -184,17 +144,17 @@ def TabuSearch_inner(eternity_puzzle, best_border, remaining_piece):
 
 
 # Function to generate a random solution
-def generate_random_solution(eternity_puzzle):
+def generate_random_solution(e):
 
     solution = []
-    remaining_piece = deepcopy(eternity_puzzle.piece_list)
+    remaining_piece = deepcopy(e.piece_list)
 
-    for i in range(eternity_puzzle.n_piece):
+    for i in range(e.n_piece):
         range_remaining = np.arange(len(remaining_piece))
         piece_idx = np.random.choice(range_remaining)
         piece = remaining_piece[piece_idx]
         permutation_idx = np.random.choice(np.arange(4))
-        piece_permuted = eternity_puzzle.generate_rotation(piece)[permutation_idx]
+        piece_permuted = e.generate_rotation(piece)[permutation_idx]
         solution.append(piece_permuted)
         remaining_piece.remove(piece)
 
@@ -202,11 +162,9 @@ def generate_random_solution(eternity_puzzle):
 
 
 # Function to generate a random solution starting from a border already completed
-def generate_random_innner_solution(eternity_puzzle, best_border, remaining_piece):
+def generate_random_innner_solution(e, best_border, remaining_piece):
 
-    solution = list_to_grid(
-        best_border, eternity_puzzle.board_size, eternity_puzzle.board_size
-    )
+    solution = list_to_grid(best_border, e.board_size, e.board_size)
     x = 1
     y = 1
 
@@ -216,13 +174,13 @@ def generate_random_innner_solution(eternity_puzzle, best_border, remaining_piec
         piece_idx = np.random.choice(range_remaining)
         piece = remaining_piece[piece_idx]
         permutation_idx = np.random.choice(np.arange(4))
-        piece_permuted = eternity_puzzle.generate_rotation(piece)[permutation_idx]
+        piece_permuted = e.generate_rotation(piece)[permutation_idx]
         print(x)
         print(y)
         solution[x][y] = piece_permuted
         remaining_piece.remove(piece)
 
-        if y < eternity_puzzle.board_size - 1:
+        if y < e.board_size - 1:
             y += 1
         else:
             y = 1
@@ -234,21 +192,19 @@ def generate_random_innner_solution(eternity_puzzle, best_border, remaining_piec
 
 
 # 2 swap with rotations neighbourhood
-def getNeighbors_inner(solution, eternity_puzzle):
+def getNeighbors_inner(solution, e):
 
-    solution = list_to_grid(
-        solution, eternity_puzzle.board_size, eternity_puzzle.board_size
-    )
+    solution = list_to_grid(solution, e.board_size, e.board_size)
     neighbourhood = []
 
-    for i in range(1, eternity_puzzle.board_size - 1):
-        for j in range(1, eternity_puzzle.board_size - 1):
+    for i in range(1, e.board_size - 1):
+        for j in range(1, e.board_size - 1):
 
             neighbor1 = solution.copy()
             neighbor2 = grid_to_list(solution.copy())
 
             # Rotated inner pieces
-            for rotated_piece in eternity_puzzle.generate_rotation(neighbor1[i][j]):
+            for rotated_piece in e.generate_rotation(neighbor1[i][j]):
                 if rotated_piece != neighbor1[i][j]:
 
                     neighbor1[i][j] = rotated_piece
@@ -256,17 +212,15 @@ def getNeighbors_inner(solution, eternity_puzzle):
                     neighbourhood.append(neighbor1)
                     neighbor1 = list_to_grid(
                         neighbor1,
-                        eternity_puzzle.board_size,
-                        eternity_puzzle.board_size,
+                        e.board_size,
+                        e.board_size,
                     )
 
             # 2 swap with rotations between inner pieces
             if i != j:
                 neighbor2[i], neighbor2[j] = neighbor2[j], neighbor2[i]
-                for rotated_piece1 in eternity_puzzle.generate_rotation(neighbor2[i]):
-                    for rotated_piece2 in eternity_puzzle.generate_rotation(
-                        neighbor2[j]
-                    ):
+                for rotated_piece1 in e.generate_rotation(neighbor2[i]):
+                    for rotated_piece2 in e.generate_rotation(neighbor2[j]):
                         neighbor2[i] = rotated_piece1
                         neighbor2[j] = rotated_piece2
                         neighbourhood.append(neighbor2)
@@ -274,22 +228,20 @@ def getNeighbors_inner(solution, eternity_puzzle):
     return neighbourhood
 
 
-def getNeighbors_border(eternity_puzzle, solution):
+def getNeighbors_border(e, solution):
     # Il faut juste placer les bords, pas les pièces à l'intérieur
 
-    solution = list_to_grid(
-        solution, eternity_puzzle.board_size, eternity_puzzle.board_size
-    )
+    solution = list_to_grid(solution, e.board_size, e.board_size)
     neighbourhood = []
 
-    for i in range(eternity_puzzle.board_size):
-        for j in range(eternity_puzzle.board_size):
+    for i in range(e.board_size):
+        for j in range(e.board_size):
 
             neighbor1 = solution.copy()
             neighbor2 = grid_to_list(solution.copy())
 
             # Rotated inner pieces
-            for rotated_piece in eternity_puzzle.generate_rotation(neighbor1[i][j]):
+            for rotated_piece in e.generate_rotation(neighbor1[i][j]):
                 if rotated_piece != neighbor1[i][j]:
 
                     neighbor1[i][j] = rotated_piece
@@ -297,17 +249,15 @@ def getNeighbors_border(eternity_puzzle, solution):
                     neighbourhood.append(neighbor1)
                     neighbor1 = list_to_grid(
                         neighbor1,
-                        eternity_puzzle.board_size,
-                        eternity_puzzle.board_size,
+                        e.board_size,
+                        e.board_size,
                     )
 
             # 2 swap with rotations between inner pieces
             if i != j:
                 neighbor2[i], neighbor2[j] = neighbor2[j], neighbor2[i]
-                for rotated_piece1 in eternity_puzzle.generate_rotation(neighbor2[i]):
-                    for rotated_piece2 in eternity_puzzle.generate_rotation(
-                        neighbor2[j]
-                    ):
+                for rotated_piece1 in e.generate_rotation(neighbor2[i]):
+                    for rotated_piece2 in e.generate_rotation(neighbor2[j]):
                         neighbor2[i] = rotated_piece1
                         neighbor2[j] = rotated_piece2
                         neighbourhood.append(neighbor2)
@@ -315,19 +265,38 @@ def getNeighbors_border(eternity_puzzle, solution):
     return neighbourhood
 
 
-def getBorderCost(border, eternity_puzzle):
+def getBorderCost(e, border):
 
     border_copy = deepcopy(border)
-    border_copy = list_to_grid(
-        border_copy, eternity_puzzle.board_size, eternity_puzzle.board_size
-    )
-
+    border_copy = list_to_grid(border_copy, e.board_size, e.board_size)
     # Set all the inner pieces to be black to ignore them in the cost
-    for i in range(1, eternity_puzzle.board_size - 1):
-        for j in range(1, eternity_puzzle.board_size - 1):
+    for i in range(1, e.board_size - 1):
+        for j in range(1, e.board_size - 1):
             border_copy[i][j] = (23, 23, 23, 23)
 
     border_copy = grid_to_list(border_copy)
-    border_cost = eternity_puzzle.get_total_n_conflict(border_copy)
+    border_cost = e.get_total_n_conflict(border_copy)
 
     return border_cost
+
+
+def is_tabu_type1(tabu_list, candidate_solution):
+    # TODO
+    return False
+
+
+def is_tabu_type2(tabu_list, candidate_solution):
+    # TODO
+    return False
+
+
+def Remaining_Pieces(e, border):
+
+    remaining_piece = []
+    border_grid = list_to_grid(border, e.board_size, e.board_size)
+
+    for i in range(1, e.board_size - 1):
+        for j in range(1, e.board_size - 1):
+            remaining_piece.append(border_grid[i][j])
+
+    return remaining_piece
