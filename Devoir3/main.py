@@ -8,6 +8,7 @@ import time
 from rcpsp import RCPSP
 import os
 
+
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
@@ -17,7 +18,6 @@ def parse_arguments():
     parser.add_argument("--outfile", type=str, default="solution")
     parser.add_argument("--visualisation_file", type=str, default="visualization")
     parser.add_argument("--display", type=bool, default=True)
-
 
     return parser.parse_args()
 
@@ -44,9 +44,6 @@ if __name__ == "__main__":
     elif args.agent == "genetic":
         # Genetic Agent
         solution = solver_genetic.solve(rcpsp)
-    elif args.agent == "gen_tune":
-        # Genetic Agent
-        solution = GridSearch.solve(rcpsp)
     elif args.agent == "lns":
         # LNS Agent
         solution = solver_LNS.solve(rcpsp)
@@ -63,10 +60,17 @@ if __name__ == "__main__":
         os.makedirs(base_path)
 
     # You can disable the display if you do not want to generate the visualization
-    plot_name = args.visualisation_file if args.visualisation_file != "visualization" else f"{base_path}/visualization_{args.infile.replace('instances/', '').replace('.txt', '')}"
+    plot_name = (
+        args.visualisation_file
+        if args.visualisation_file != "visualization"
+        else f"{base_path}/visualization_{args.infile.replace('instances/', '').replace('.txt', '')}"
+    )
     rcpsp.display_solution(solution, plot_name, args.display)
 
-    rcpsp.save_solution(solution, f"{base_path}/{args.outfile}_{args.infile.replace('instances/', '').replace('.txt', '')}")
+    rcpsp.save_solution(
+        solution,
+        f"{base_path}/{args.outfile}_{args.infile.replace('instances/', '').replace('.txt', '')}",
+    )
     print("***********************************************************")
     print("[INFO] Solution obtained")
     print("[INFO] Execution time : %s minutes" % solving_time)
