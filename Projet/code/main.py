@@ -6,6 +6,7 @@ import solver_heuristic
 import solver_local_search
 import solver_advanced
 import solver_genetic
+import solver_tabu
 
 
 def parse_arguments():
@@ -51,6 +52,9 @@ if __name__ == "__main__":
     elif args.agent == "genetic":
         # Genetic Agent
         solution, n_conflict = solver_genetic.solve_advanced(e)
+    elif args.agent == "tabu":
+        # Genetic Agent
+        solution, n_conflict = solver_tabu.solve_advanced(e)
     else:
         raise Exception("This agent does not exist")
     solving_time = round((time.time() - start_time) / 60, 2)

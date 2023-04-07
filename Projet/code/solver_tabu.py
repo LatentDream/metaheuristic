@@ -12,6 +12,7 @@ import time
 import random
 from utils.utils import *
 from math import inf
+import solver_heuristic
 
 ########################### PARAMETERS ####################################
 tabu_length = 360  # Length of tabu list
@@ -42,7 +43,7 @@ def solve_advanced(e):
 
     # Phase I : Border Construction
     best_border, _ = TabuSearch_border(e)
-    print(best_border)
+
     remaining_pieces = Remaining_Pieces(e, best_border)
 
     visualize(e, best_border, "Border_after_tabu")
@@ -164,7 +165,7 @@ def generate_random_solution(e):
 # Function to generate a random solution starting from a border already completed
 def generate_random_innner_solution(e, best_border, remaining_piece):
 
-    solution = list_to_grid(best_border, e.board_size, e.board_size)
+    solution = list_to_grid(e, best_border)
     x = 1
     y = 1
 
@@ -194,7 +195,7 @@ def generate_random_innner_solution(e, best_border, remaining_piece):
 # 2 swap with rotations neighbourhood
 def getNeighbors_inner(solution, e):
 
-    solution = list_to_grid(solution, e.board_size, e.board_size)
+    solution = list_to_grid(e, solution)
     neighbourhood = []
 
     for i in range(1, e.board_size - 1):
@@ -211,9 +212,8 @@ def getNeighbors_inner(solution, e):
                     neighbor1 = grid_to_list(neighbor1)
                     neighbourhood.append(neighbor1)
                     neighbor1 = list_to_grid(
+                        e,
                         neighbor1,
-                        e.board_size,
-                        e.board_size,
                     )
 
             # 2 swap with rotations between inner pieces
@@ -231,7 +231,7 @@ def getNeighbors_inner(solution, e):
 def getNeighbors_border(e, solution):
     # Il faut juste placer les bords, pas les pièces à l'intérieur
 
-    solution = list_to_grid(solution, e.board_size, e.board_size)
+    solution = list_to_grid(e, solution)
     neighbourhood = []
 
     for i in range(e.board_size):
@@ -248,9 +248,8 @@ def getNeighbors_border(e, solution):
                     neighbor1 = grid_to_list(neighbor1)
                     neighbourhood.append(neighbor1)
                     neighbor1 = list_to_grid(
+                        e,
                         neighbor1,
-                        e.board_size,
-                        e.board_size,
                     )
 
             # 2 swap with rotations between inner pieces
@@ -268,7 +267,7 @@ def getNeighbors_border(e, solution):
 def getBorderCost(e, border):
 
     border_copy = deepcopy(border)
-    border_copy = list_to_grid(border_copy, e.board_size, e.board_size)
+    border_copy = list_to_grid(e, border_copy)
     # Set all the inner pieces to be black to ignore them in the cost
     for i in range(1, e.board_size - 1):
         for j in range(1, e.board_size - 1):
@@ -293,7 +292,7 @@ def is_tabu_type2(tabu_list, candidate_solution):
 def Remaining_Pieces(e, border):
 
     remaining_piece = []
-    border_grid = list_to_grid(border, e.board_size, e.board_size)
+    border_grid = list_to_grid(e, border)
 
     for i in range(1, e.board_size - 1):
         for j in range(1, e.board_size - 1):

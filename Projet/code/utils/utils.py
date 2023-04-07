@@ -6,10 +6,10 @@ def grid_to_list(grid):
 
 
 # Function to create a 2D grid from a list
-def list_to_grid(liste, rows, cols):
+def list_to_grid(e: EternityPuzzle, liste):
     grid = []
-    for i in range(rows):
-        grid.append(liste[i * cols : i * cols + cols])
+    for i in range(e.board_size):
+        grid.append(liste[i * e.board_size : i * e.board_size + e.board_size])
     return grid
 
 

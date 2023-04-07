@@ -9,7 +9,6 @@ import time
 import random
 import numpy as np
 import networkx as nx
-from copy import deepcopy
 from math import inf
 import solver_heuristic
 import solver_local_search
@@ -35,16 +34,45 @@ def solve_advanced(e: EternityPuzzle):
         cost is the cost of the solution
     """
 
+    # Solve the border
+    time_limit = 60  # 20 * 60
+
+    pop_size = 1000
+    mutation_rate = 0.5
+    max_time_local_search = 1
+    tournament_size = 100
+    tournament_accepted = 20
+    num_generations = 1000
+    no_progress_generations = 100
+    elite_size = 0
+
+    border_solution, cost = genetic_algorithm_border(
+        e,
+        num_generations=num_generations,
+        no_progress_generations=no_progress_generations,
+        max_time_local_search=max_time_local_search,
+        elite_size=elite_size,
+        mutation_rate=mutation_rate,
+        tournament_size=tournament_size,
+        tournament_accepted=tournament_accepted,
+        pop_size=pop_size,
+        time_limit=time_limit,
+    )
+    visualize(e, border_solution, "BORDEEER")
+    return border_solution, cost
+
+    # Solve the inner puzzle
+
     time_limit = 60 * 5  # 20 * 60
 
     pop_size = 300
     mutation_rate = 0.5
     max_time_local_search = 1
-    tournament_size = 100
+    tournament_size = 20
     tournament_accepted = 5
     num_generations = 1000
     no_progress_generations = 5
-    elite_size = 10
+    elite_size = 0
 
     return genetic_algorithm(
         e,
@@ -101,15 +129,15 @@ def genetic_algorithm(
                 parent1 = parents[j]
                 parent2 = parents[len(parents) - j - 1]
 
-                child1 = m_point_crossover(
+                child1 = inner_crossover(
                     parent1,
                     parent2,
-                    random.choice([i for i in range(2, e.board_size)]),
+                    random.choice([i for i in range(2, 8)]),
                 )
-                child2 = m_point_crossover(
+                child2 = inner_crossover(
                     parent1,
                     parent2,
-                    random.choice([i for i in range(2, e.board_size)]),
+                    random.choice([i for i in range(2, 8)]),
                 )
 
                 child1 = mutation(e, child1, mutation_rate)
@@ -243,10 +271,13 @@ def generate_population(e: EternityPuzzle, pop_size, elite_size):
     return population
 
 
-def m_point_crossover(parent1, parent2, num_points):
+def inner_crossover(parent1, parent2, num_points):
     # Choose random crossover points
     length = len(parent1)
     points = sorted(random.sample(range(length), num_points))
+
+    print(parent1)
+    pieces = set(parent1)
 
     # Create child using parent1's genes in selected segments
     child = parent1.copy()
@@ -259,6 +290,8 @@ def m_point_crossover(parent1, parent2, num_points):
 
 
 def mutation(e, solution, mutation_rate):
+    # Rotate a piece
+
     mutated_solution = deepcopy(solution)
 
     for idx, piece in enumerate(mutated_solution):
@@ -266,16 +299,16 @@ def mutation(e, solution, mutation_rate):
         if random.random() < mutation_rate:
             mutated_solution[idx] = random.choice(e.generate_rotation(piece))
 
-        # 2-swap pieces :
-        if random.random() < mutation_rate:
-            # choose two distinct indices to swap
-            index1 = random.randint(0, len(solution) - 1)
-            index2 = random.randint(0, len(solution) - 1)
-            # swap the tiles at the chosen indices
-            mutated_solution[index1], mutated_solution[index2] = (
-                mutated_solution[index2],
-                mutated_solution[index1],
-            )
+        # # 2-swap pieces :
+        # if random.random() < mutation_rate:
+        #     # choose two distinct indices to swap
+        #     index1 = random.randint(0, len(solution) - 1)
+        #     index2 = random.randint(0, len(solution) - 1)
+        #     # swap the tiles at the chosen indices
+        #     mutated_solution[index1], mutated_solution[index2] = (
+        #         mutated_solution[index2],
+        #         mutated_solution[index1],
+        #     )
     return mutated_solution
 
 
@@ -337,3 +370,198 @@ def local_search(
         e, solution, max_time_local_search
     )
     return best_solution, -cost
+
+
+#################################### Genetic algorithmm for the border ##################################################
+
+
+def genetic_algorithm_border(
+    e: EternityPuzzle,
+    num_generations,
+    no_progress_generations,
+    max_time_local_search,
+    elite_size,
+    mutation_rate,
+    tournament_size,
+    tournament_accepted,
+    pop_size,
+    time_limit,
+):
+
+    start_time = time.time()
+    best_fitness_no_improvement = -inf
+    best_fitness = -inf
+    improvement_timer = 1
+    time_over = False
+
+    while not time_over:
+
+        # Generate the initial population
+        population = generate_border_population(e, pop_size)
+        population = sorted(
+            population, key=lambda s: fitness_border(e, s), reverse=True
+        )
+
+        # Iterate over the generations
+        for _ in range(num_generations):
+
+            # The parents selected for the next generation
+            parents = population[: pop_size // 2]
+
+            # The elite is kept for the next generation
+            elite = population[:elite_size]
+
+            # Create the offspring for the next generation
+            offspring = []
+            for j in range(len(parents) // 2):
+
+                parent1 = parents[j]
+                parent2 = parents[len(parents) - j - 1]
+
+                child1 = border_crossover(
+                    e,
+                    parent1,
+                )
+                child2 = border_crossover(
+                    e,
+                    parent2,
+                )
+
+                child1 = mutation(e, child1, mutation_rate)
+                child2 = mutation(e, child2, mutation_rate)
+
+                offspring.append(child1)
+                offspring.append(child2)
+
+            # Select the survivors for the next generation : we keep the same population size
+            population = (
+                selection_border(
+                    e,
+                    parents + offspring,
+                    pop_size,
+                    tournament_size,
+                    tournament_accepted,
+                )
+                + elite
+            )
+
+            population = sorted(
+                population, key=lambda s: fitness_border(e, s), reverse=True
+            )
+
+            # Update the best solution found so far
+            fittest_solution = population[0]
+            fittest_score = fitness_border(e, fittest_solution)
+            print(fittest_score)
+            if fittest_score > best_fitness_no_improvement:
+
+                # improved_solution, improved_solution_score = local_search(
+                #     e, fittest_solution, max_time_local_search=max_time_local_search
+                # )
+                # todo : local search for border
+                improved_solution, improved_solution_score = (
+                    fittest_solution,
+                    fittest_score,
+                )
+
+                if improved_solution_score > best_fitness:
+                    best_fitness = improved_solution_score
+                    best_solution = improved_solution.copy()
+
+                improvement_timer = 0
+
+            else:
+                improvement_timer += 1
+                # If no improvement is made during too many generations, restart on a new population
+                if improvement_timer > no_progress_generations == 0:
+                    improvement_timer = 0
+                    break
+
+            if time.time() - start_time > time_limit:
+                time_over = True
+                break
+
+    return best_solution, fitness_border(e, best_solution)
+
+
+def border_crossover(e: EternityPuzzle, parent):
+    b = e.board_size
+    l = len(parent)
+
+    # Select randomly two locations on the border
+    i = random.choice(range(b))
+    j = random.choice(range(b))
+    while not (i % b == 0 or l - i <= b or i <= b - 1 or i % b - 1 == 0):
+        i = random.choice(range(b))
+    while not (j % b == 0 or l - j <= b or j <= b - 1 or j % b - 1 == 0):
+        j = random.choice(range(b))
+
+    # 2-swap
+    child = parent.copy()
+    child[i], child[j] = parent[j], parent[i]
+
+    return child
+
+
+def fitness_border(e: EternityPuzzle, s):
+    border_copy = deepcopy(s)
+    b = e.board_size
+
+    # Set all the inner pieces to black to ignore them in the cost
+    for i in range(e.n_piece):
+        if not (i % b == 0 or i < b - 1 or len(s) - 1 <= b or i % (b - 1) == 0):
+            border_copy[i] = (BLACK, BLACK, BLACK, BLACK)
+
+    border_cost = e.get_total_n_conflict(border_copy) - 4 * (e.board_size - 2)
+    return -border_cost
+
+
+def selection_border(
+    e: EternityPuzzle, population, pop_size, tournament_size, tournament_accepted
+):
+    selected = []
+    while len(selected) < pop_size:
+        subset = random.sample(population, tournament_size)
+        selected.extend(
+            sorted(subset, key=lambda s: fitness_border(e, s), reverse=True)[
+                :tournament_accepted
+            ]
+        )
+    return selected
+
+
+def generate_border_population(e: EternityPuzzle, pop_size):
+    population = []
+
+    for _ in range(pop_size):
+        population.append(generate_random_border(e))
+    return population
+
+
+def generate_random_border(e: EternityPuzzle):
+
+    solution = generate_random_solution(e)
+
+    gray_inner_pieces = []
+    no_gray_border_pieces = []
+
+    b = e.board_size
+
+    # All the pieces with gray color must be on the border
+    for i in range(e.n_piece):
+        if not (i % b == 0 or i <= b - 1 or i + b >= e.n_piece or (i + 1) % b == 0):
+            if GRAY in solution[i]:
+                gray_inner_pieces.append(i)
+        else:
+            if not (GRAY in solution[i]):
+                no_gray_border_pieces.append(i)
+
+    random.shuffle(gray_inner_pieces)
+    random.shuffle(no_gray_border_pieces)
+
+    while len(no_gray_border_pieces) > 0:
+        i_c = no_gray_border_pieces.pop()
+        i_g = gray_inner_pieces.pop()
+        solution[i_c], solution[i_g] = solution[i_g], solution[i_c]
+
+    return solution

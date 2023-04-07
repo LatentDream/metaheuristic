@@ -204,9 +204,7 @@ def generate_random_solution(eternity_puzzle):
 # Function to generate a random solution starting from a border already completed
 def generate_random_innner_solution(eternity_puzzle, best_border, remaining_piece):
 
-    solution = list_to_grid(
-        best_border, eternity_puzzle.board_size, eternity_puzzle.board_size
-    )
+    solution = list_to_grid(eternity_puzzle, best_border)
     x = 1
     y = 1
 
@@ -236,9 +234,7 @@ def generate_random_innner_solution(eternity_puzzle, best_border, remaining_piec
 # 2 swap with rotations neighbourhood
 def getNeighbors_inner(solution, eternity_puzzle):
 
-    solution = list_to_grid(
-        solution, eternity_puzzle.board_size, eternity_puzzle.board_size
-    )
+    solution = list_to_grid(eternity_puzzle, solution)
     neighbourhood = []
 
     for i in range(1, eternity_puzzle.board_size - 1):
@@ -255,9 +251,8 @@ def getNeighbors_inner(solution, eternity_puzzle):
                     neighbor1 = grid_to_list(neighbor1)
                     neighbourhood.append(neighbor1)
                     neighbor1 = list_to_grid(
+                        eternity_puzzle,
                         neighbor1,
-                        eternity_puzzle.board_size,
-                        eternity_puzzle.board_size,
                     )
 
             # 2 swap with rotations between inner pieces
@@ -277,9 +272,7 @@ def getNeighbors_inner(solution, eternity_puzzle):
 def getNeighbors_border(eternity_puzzle, solution):
     # Il faut juste placer les bords, pas les pièces à l'intérieur
 
-    solution = list_to_grid(
-        solution, eternity_puzzle.board_size, eternity_puzzle.board_size
-    )
+    solution = list_to_grid(eternity_puzzle, solution)
     neighbourhood = []
 
     for i in range(eternity_puzzle.board_size):
@@ -295,11 +288,7 @@ def getNeighbors_border(eternity_puzzle, solution):
                     neighbor1[i][j] = rotated_piece
                     neighbor1 = grid_to_list(neighbor1)
                     neighbourhood.append(neighbor1)
-                    neighbor1 = list_to_grid(
-                        neighbor1,
-                        eternity_puzzle.board_size,
-                        eternity_puzzle.board_size,
-                    )
+                    neighbor1 = list_to_grid(eternity_puzzle, neighbor1)
 
             # 2 swap with rotations between inner pieces
             if i != j:
@@ -318,9 +307,7 @@ def getNeighbors_border(eternity_puzzle, solution):
 def getBorderCost(border, eternity_puzzle):
 
     border_copy = deepcopy(border)
-    border_copy = list_to_grid(
-        border_copy, eternity_puzzle.board_size, eternity_puzzle.board_size
-    )
+    border_copy = list_to_grid(eternity_puzzle, border_copy)
 
     # Set all the inner pieces to be black to ignore them in the cost
     for i in range(1, eternity_puzzle.board_size - 1):

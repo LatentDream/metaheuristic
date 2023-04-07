@@ -76,9 +76,8 @@ def get_neighborhood(e, solution):
 
     solution_list = solution.copy()
     solution_grid = list_to_grid(
+        e,
         solution.copy(),
-        e.board_size,
-        e.board_size,
     )
     neighbourhood = []
 
@@ -96,9 +95,8 @@ def get_neighborhood(e, solution):
                     neighbor1 = grid_to_list(neighbor1)
                     neighbourhood.append(neighbor1)
                     neighbor1 = list_to_grid(
+                        e,
                         neighbor1,
-                        e.board_size,
-                        e.board_size,
                     )
 
             # 2 swap with rotations
