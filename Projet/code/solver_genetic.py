@@ -35,18 +35,17 @@ def solve_advanced(e: EternityPuzzle):
     """
 
     # Solve the border
-    time_limit = 20  # 20 * 60
-
-    pop_size = 20
+    border_time = 30
+    pop_size = 1000
     mutation_rate = 0
     max_time_local_search = 1
-    tournament_size = 5
-    tournament_accepted = 3
+    tournament_size = 100
+    tournament_accepted = 20
     num_generations = 1000
-    no_progress_generations = 20
+    no_progress_generations = 5
     elite_size = 0
 
-    border_solution, cost = genetic_algorithm_border(
+    border, border_cost = genetic_algorithm_border(
         e,
         num_generations=num_generations,
         no_progress_generations=no_progress_generations,
@@ -56,13 +55,11 @@ def solve_advanced(e: EternityPuzzle):
         tournament_size=tournament_size,
         tournament_accepted=tournament_accepted,
         pop_size=pop_size,
-        time_limit=time_limit,
+        time_limit=border_time,
     )
-    visualize(e, border_solution, "Border_construction")
-    return border_solution, cost
+    print("Border : {}".format(border_cost))
 
     # Solve the inner puzzle
-
     time_limit = 60 * 5  # 20 * 60
 
     pop_size = 300
@@ -174,13 +171,13 @@ def genetic_algorithm(
 
                     for instance, length in file_names.items():
                         if length == len(best_solution):
-                            a = instance
+                            instance_name = instance
 
                     visualize(
                         e,
                         best_solution,
                         "visualisation/{}/Cost {}".format(
-                            a, e.get_total_n_conflict(best_solution)
+                            instance_name, e.get_total_n_conflict(best_solution)
                         ),
                     )
 
@@ -189,7 +186,7 @@ def genetic_algorithm(
             else:
                 improvement_timer += 1
                 # If no improvement is made during too many generations, restart on a new population
-                if improvement_timer > no_progress_generations == 0:
+                if improvement_timer > no_progress_generations:
                     improvement_timer = 0
                     break
 
@@ -205,6 +202,7 @@ def genetic_algorithm(
 
 def fitness(e: EternityPuzzle, solution):
     return -e.get_total_n_conflict(solution)
+
 
 def fitness_border(e: EternityPuzzle, s):
     border_copy = deepcopy(s)
@@ -324,6 +322,7 @@ def generate_fit_chromosome(e: EternityPuzzle):
     solution, _ = solver_heuristic.solve_heuristic(e)
     return solution
 
+
 def generate_population(e: EternityPuzzle, pop_size, elite_size):
     population = []
 
@@ -354,12 +353,12 @@ def inner_crossover(parent1, parent2, num_points):
     return child
 
 
-def mutation(e, solution, mutation_rate):
+def mutation(e: EternityPuzzle, solution, mutation_rate):
     # Rotation of pieces
     mutated_solution = deepcopy(solution)
     for idx, piece in enumerate(mutated_solution):
         if random.random() < mutation_rate and piece_type(piece) == "inner":
-            mutated_solution[idx] = random.choice(e.generate_rotation(piece))
+            mutated_solution[idx] = random.choice(e.generate_rotation(piece)[1:])
 
     return mutated_solution
 
@@ -378,6 +377,7 @@ def selection(
         )
     return selected
 
+
 # Selection for border pieces
 def selection_border(
     e: EternityPuzzle, population, pop_size, tournament_size, tournament_accepted
@@ -392,6 +392,7 @@ def selection_border(
         )
     return selected
 
+
 ################################# Local Search to improve valid solutions ##############################################
 def local_search(
     e: EternityPuzzle, solution: Dict[int, int], max_time_local_search
@@ -400,7 +401,10 @@ def local_search(
         e, solution, max_time_local_search
     )
     return best_solution, -cost
+
+
 #################################### Genetic algorithmm for the border ##################################################
+
 
 def genetic_algorithm_border(
     e: EternityPuzzle,
@@ -492,7 +496,7 @@ def genetic_algorithm_border(
             else:
                 improvement_timer += 1
                 # If no improvement is made during too many generations, restart on a new population
-                if improvement_timer > no_progress_generations == 0:
+                if improvement_timer > no_progress_generations:
                     improvement_timer = 0
                     break
 
@@ -507,27 +511,21 @@ def border_crossover(e: EternityPuzzle, parent):
     b = e.board_size
     child = parent.copy()
 
-    # 2-swap between 2 randomly selected locations on the edge
-    i = random.choice(range(1, e.n_piece - 1))
-    j = random.choice(range(1, e.n_piece - 1))
-    while not (i < b - 1 or i % b == 0 or e.n_piece - i < b or (i + 1) % b == 0):
-        i = random.choice(range(e.n_piece))
-    while not (i < b - 1 or i % b == 0 or e.n_piece - i < b or (i + 1) % b == 0):
-        j = random.choice(range(e.n_piece))
-
+    # 2-swap between 2 randomly selected locations on the edges and not in the corner
+    valid_edges = [
+        i
+        for i in range(e.n_piece)
+        if i < b - 1 or i % b == 0 or e.n_piece - i < b or (i + 1) % b == 0
+    ]
+    i, j = random.sample(valid_edges, 2)
     child[i], child[j] = swap_orientations(e, parent[j], parent[i])
 
-    # 2-swap between 2 randomly selected locations on the corner
-    i = random.choice([0, b - 1, e.n_piece - b, e.n_piece - 1])
-    j = random.choice([0, b - 1, e.n_piece - b, e.n_piece - 1])
+    # 2-swap between 2 randomly selected locations in the corners
+    valid_edges = [0, b - 1, e.n_piece - b, e.n_piece - 1]
+    i, j = random.sample(valid_edges, 2)
     child[i], child[j] = swap_orientations(e, parent[j], parent[i])
 
     return child
-
-
-
-
-
 
 
 def piece_type(piece):
@@ -540,8 +538,6 @@ def swap_orientations(e: EternityPuzzle, piece1, piece2):
         gray_positions_1 = [i for i in range(4) if piece1[i] == GRAY]
         gray_positions_2 = [i for i in range(4) if piece2[i] == GRAY]
 
-        # print(gray_positions_1)
-        # print(gray_positions_2)
         for rotated_piece1 in e.generate_rotation(piece1):
             if (
                 rotated_piece1[gray_positions_2[0]] == GRAY
