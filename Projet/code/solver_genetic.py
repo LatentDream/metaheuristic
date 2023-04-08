@@ -35,15 +35,15 @@ def solve_advanced(e: EternityPuzzle):
     """
 
     # Solve the border
-    time_limit = 5  # 20 * 60
+    time_limit = 20  # 20 * 60
 
-    pop_size = 2000
-    mutation_rate = 0.1
+    pop_size = 20
+    mutation_rate = 0
     max_time_local_search = 1
-    tournament_size = 100
-    tournament_accepted = 10
+    tournament_size = 5
+    tournament_accepted = 3
     num_generations = 1000
-    no_progress_generations = 5
+    no_progress_generations = 20
     elite_size = 0
 
     border_solution, cost = genetic_algorithm_border(
@@ -206,6 +206,18 @@ def genetic_algorithm(
 def fitness(e: EternityPuzzle, solution):
     return -e.get_total_n_conflict(solution)
 
+def fitness_border(e: EternityPuzzle, s):
+    border_copy = deepcopy(s)
+    b = e.board_size
+
+    # Set all the inner pieces to black to ignore them in the cost
+    for i in range(e.n_piece):
+        if not (i % b == 0 or i <= b - 1 or e.n_piece <= b + i or (i + 1) % b == 0):
+            border_copy[i] = (BLACK, BLACK, BLACK, BLACK)
+
+    border_cost = e.get_total_n_conflict(border_copy) - 4 * (e.board_size - 2)
+    return -border_cost
+
 
 ###################################### Genetic Operaters ###############################
 
@@ -312,29 +324,6 @@ def generate_fit_chromosome(e: EternityPuzzle):
     solution, _ = solver_heuristic.solve_heuristic(e)
     return solution
 
-
-# def find_best_position(e: EternityPuzzle, piece, solution):
-#     best_position = None
-#     best_conflict = float("inf")
-#     for i in range(e.n_piece):
-#         if solution[i] == (WHITE, WHITE, WHITE, WHITE):
-#             conflicts = get_piece_conflicts(e, i, piece, solution)
-#             if conflicts < best_conflict:
-#                 best_position = i
-#                 best_conflict = conflicts
-#     return best_position
-
-
-# def get_piece_conflicts(e: EternityPuzzle, position, piece, solution):
-#     conflicts = 0
-#     j, i = divmod(position, e.board_size)
-#     if i > 0:
-#         conflicts += int(piece[WEST] != solution[position - 1][EAST])
-#     if j > 0:
-#         conflicts += int(piece[NORTH] != solution[position - e.board_size][SOUTH])
-#     return conflicts
-
-
 def generate_population(e: EternityPuzzle, pop_size, elite_size):
     population = []
 
@@ -346,6 +335,7 @@ def generate_population(e: EternityPuzzle, pop_size, elite_size):
     return population
 
 
+# todo
 def inner_crossover(parent1, parent2, num_points):
     # Choose random crossover points
     length = len(parent1)
@@ -365,29 +355,16 @@ def inner_crossover(parent1, parent2, num_points):
 
 
 def mutation(e, solution, mutation_rate):
-    # Rotate a piece
-
+    # Rotation of pieces
     mutated_solution = deepcopy(solution)
-
     for idx, piece in enumerate(mutated_solution):
-        # Rotate piece
         if random.random() < mutation_rate and piece_type(piece) == "inner":
             mutated_solution[idx] = random.choice(e.generate_rotation(piece))
 
-        # # 2-swap pieces :
-        # if random.random() < mutation_rate:
-        #     # choose two distinct indices to swap
-        #     index1 = random.randint(0, len(solution) - 1)
-        #     index2 = random.randint(0, len(solution) - 1)
-        #     # swap the tiles at the chosen indices
-        #     mutated_solution[index1], mutated_solution[index2] = (
-        #         mutated_solution[index2],
-        #         mutated_solution[index1],
-        #     )
     return mutated_solution
 
 
-# Selection through a tournament
+# Selection for inner pieces
 def selection(
     e: EternityPuzzle, population, pop_size, tournament_size, tournament_accepted
 ):
@@ -401,10 +378,21 @@ def selection(
         )
     return selected
 
+# Selection for border pieces
+def selection_border(
+    e: EternityPuzzle, population, pop_size, tournament_size, tournament_accepted
+):
+    selected = []
+    while len(selected) < pop_size:
+        subset = random.sample(population, tournament_size)
+        selected.extend(
+            sorted(subset, key=lambda s: fitness_border(e, s), reverse=True)[
+                :tournament_accepted
+            ]
+        )
+    return selected
 
 ################################# Local Search to improve valid solutions ##############################################
-
-
 def local_search(
     e: EternityPuzzle, solution: Dict[int, int], max_time_local_search
 ) -> Dict[int, int]:
@@ -412,10 +400,7 @@ def local_search(
         e, solution, max_time_local_search
     )
     return best_solution, -cost
-
-
 #################################### Genetic algorithmm for the border ##################################################
-
 
 def genetic_algorithm_border(
     e: EternityPuzzle,
@@ -464,9 +449,6 @@ def genetic_algorithm_border(
                     e,
                     parent2,
                 )
-
-                child1 = mutation(e, child1, mutation_rate)
-                child2 = mutation(e, child2, mutation_rate)
 
                 offspring.append(child1)
                 offspring.append(child2)
@@ -523,49 +505,67 @@ def genetic_algorithm_border(
 
 def border_crossover(e: EternityPuzzle, parent):
     b = e.board_size
-    l = len(parent)
-
-    # 2-swap between 2 randomly selected locations on the border
-    i = random.choice(range(b))
-    j = random.choice(range(b))
-    while not (i % b == 0 or l - i <= b or i <= b - 1 or i % b - 1 == 0):
-        i = random.choice(range(b))
-    while not (j % b == 0 or l - j <= b or j <= b - 1 or j % b - 1 == 0):
-        j = random.choice(range(b))
-
     child = parent.copy()
-    child[i], child[j] = parent[j], parent[i]
+
+    # 2-swap between 2 randomly selected locations on the edge
+    i = random.choice(range(1, e.n_piece - 1))
+    j = random.choice(range(1, e.n_piece - 1))
+    while not (i < b - 1 or i % b == 0 or e.n_piece - i < b or (i + 1) % b == 0):
+        i = random.choice(range(e.n_piece))
+    while not (i < b - 1 or i % b == 0 or e.n_piece - i < b or (i + 1) % b == 0):
+        j = random.choice(range(e.n_piece))
+
+    child[i], child[j] = swap_orientations(e, parent[j], parent[i])
+
+    # 2-swap between 2 randomly selected locations on the corner
+    i = random.choice([0, b - 1, e.n_piece - b, e.n_piece - 1])
+    j = random.choice([0, b - 1, e.n_piece - b, e.n_piece - 1])
+    child[i], child[j] = swap_orientations(e, parent[j], parent[i])
 
     return child
 
 
-def fitness_border(e: EternityPuzzle, s):
-    border_copy = deepcopy(s)
-    b = e.board_size
-
-    # Set all the inner pieces to black to ignore them in the cost
-    for i in range(e.n_piece):
-        if not (i % b == 0 or i <= b - 1 or e.n_piece <= b + i or (i + 1) % b == 0):
-            border_copy[i] = (BLACK, BLACK, BLACK, BLACK)
-
-    border_cost = e.get_total_n_conflict(border_copy) - 4 * (e.board_size - 2)
-    return -border_cost
 
 
-def selection_border(
-    e: EternityPuzzle, population, pop_size, tournament_size, tournament_accepted
-):
-    selected = []
-    while len(selected) < pop_size:
-        subset = random.sample(population, tournament_size)
-        selected.extend(
-            sorted(subset, key=lambda s: fitness_border(e, s), reverse=True)[
-                :tournament_accepted
-            ]
-        )
-    return selected
+
 
 
 def piece_type(piece):
     count_gray = piece.count(GRAY)
     return "corner" if count_gray == 2 else "edge" if count_gray == 1 else "inner"
+
+
+def swap_orientations(e: EternityPuzzle, piece1, piece2):
+    if piece_type(piece1) == "corner" and piece_type(piece2) == "corner":
+        gray_positions_1 = [i for i in range(4) if piece1[i] == GRAY]
+        gray_positions_2 = [i for i in range(4) if piece2[i] == GRAY]
+
+        # print(gray_positions_1)
+        # print(gray_positions_2)
+        for rotated_piece1 in e.generate_rotation(piece1):
+            if (
+                rotated_piece1[gray_positions_2[0]] == GRAY
+                and rotated_piece1[gray_positions_2[1]] == GRAY
+            ):
+                piece1 = rotated_piece1
+
+        for rotated_piece2 in e.generate_rotation(piece2):
+            if (
+                rotated_piece2[gray_positions_1[0]] == GRAY
+                and rotated_piece2[gray_positions_1[1]] == GRAY
+            ):
+                piece1 = rotated_piece2
+
+    if piece_type(piece1) == "edge" and piece_type(piece2) == "edge":
+        gray_position_1 = [i for i in range(4) if piece1[i] == GRAY][0]
+        gray_position_2 = [i for i in range(4) if piece2[i] == GRAY][0]
+
+        for rotated_piece1 in e.generate_rotation(piece1):
+            if rotated_piece1[gray_position_2] == GRAY:
+                piece1 = rotated_piece1
+
+        for rotated_piece2 in e.generate_rotation(piece2):
+            if rotated_piece2[gray_position_1] == GRAY:
+                piece2 = rotated_piece2
+
+    return piece1, piece2
