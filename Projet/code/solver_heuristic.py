@@ -28,7 +28,7 @@ def solve_heuristic(e: EternityPuzzle):
     corners = [piece for piece in e.piece_list if piece_type(piece) == "corner"]
     edges = [piece for piece in e.piece_list if piece_type(piece) == "edge"]
     inner = [piece for piece in e.piece_list if piece_type(piece) == "inner"]
-    
+
     edge_idx = [
         i
         for i in range(1, e.n_piece - 1)
@@ -53,7 +53,7 @@ def solve_heuristic(e: EternityPuzzle):
 
     best_cost_geometry = math.inf
     best_solution = None
-    for i, geometry in enumerate(corner_geometries):
+    for geometry in corner_geometries:
         solution = deepcopy(geometry)
 
         corners = [piece for piece in e.piece_list if piece_type(piece) == "corner"]

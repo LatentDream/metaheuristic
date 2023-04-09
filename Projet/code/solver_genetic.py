@@ -36,14 +36,14 @@ def solve_advanced(e: EternityPuzzle):
     random.seed(1234)
 
     # Solve the border
-    border_time = 60
+    border_time = 5
     pop_size = 500
     mutation_rate = 0
     max_time_local_search = 1
     tournament_size = 100
     tournament_accepted = 20
-    num_generations = 100
-    no_progress_generations = 5
+    num_generations = 1000
+    no_progress_generations = 1000
     elite_size = 5
 
     border, border_cost = genetic_algorithm_border(
@@ -65,13 +65,13 @@ def solve_advanced(e: EternityPuzzle):
     time_limit = 20 * 60  # 20 * 60
 
     pop_size = 1000
-    mutation_rate = 0.5
-    max_time_local_search = 5
+    mutation_rate = 0.05
+    max_time_local_search = 30
     tournament_size = 100
-    tournament_accepted = 20
+    tournament_accepted = 50
     num_generations = 1000
     no_progress_generations = 100
-    elite_size = 1
+    elite_size = 5
 
     return genetic_algorithm(
         e,
