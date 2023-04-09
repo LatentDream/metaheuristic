@@ -1,6 +1,9 @@
 import numpy as np
 import math
 import copy
+from utils.utils import *
+import itertools
+from copy import deepcopy
 
 GRAY = 0
 BLACK = 23
@@ -13,84 +16,165 @@ WEST = 2
 EAST = 3
 
 
-def solve_heuristic(eternity_puzzle):
+def solve_heuristic(e: EternityPuzzle):
     """
     Heuristic solution of the problem
     :param eternity_puzzle: object describing the input
     :return: a tuple (solution, cost) where solution is a list of the pieces (rotations applied) and
         cost is the cost of the solution
     """
-    solution = []
+    b = e.board_size
+    solution = [(BLACK, BLACK, BLACK, BLACK) for _ in range(e.n_piece)]
+    corners = [piece for piece in e.piece_list if piece_type(piece) == "corner"]
+    edges = [piece for piece in e.piece_list if piece_type(piece) == "edge"]
+    inner = [piece for piece in e.piece_list if piece_type(piece) == "inner"]
+    
+    edge_idx = [
+        i
+        for i in range(1, e.n_piece - 1)
+        if (i < b - 1 or i % b == 0 or e.n_piece - i < b or (i + 1) % b == 0)
+        and (i != e.n_piece - b and i != b - 1)
+    ]
 
-    remaining_piece = copy.deepcopy(eternity_puzzle.piece_list)
+    inner_idx = [
+        i
+        for i in range(e.n_piece)
+        if not (i <= b - 1 or i % b == 0 or e.n_piece - i <= b or (i + 1) % b == 0)
+    ]
 
-    for i in range(eternity_puzzle.n_piece):
-        best_cost = math.inf
-        
-        for piece in remaining_piece:
-            for rotated_piece in eternity_puzzle.generate_rotation(piece):
-                tested_solution = solution.copy()
-                tested_solution.append(rotated_piece)
-                cost = get_current_cost(tested_solution, eternity_puzzle)
+    (
+        solution[0],
+        solution[e.board_size - 1],
+        solution[e.n_piece - e.board_size],
+        solution[e.n_piece - 1],
+    ) = (corners[0], corners[1], corners[2], corners[3])
 
-                if cost <= best_cost:
-                    best_cost = cost
-                    best_piece = piece
-                    best_oriented_piece = rotated_piece
+    corner_geometries = generate_corner_geometries(e, solution)
 
-        solution.append(best_oriented_piece)
-        remaining_piece.remove(best_piece)
+    best_cost_geometry = math.inf
+    best_solution = None
+    for i, geometry in enumerate(corner_geometries):
+        solution = deepcopy(geometry)
 
-    return (solution, eternity_puzzle.get_total_n_conflict(solution))
+        corners = [piece for piece in e.piece_list if piece_type(piece) == "corner"]
+        edges = [piece for piece in e.piece_list if piece_type(piece) == "edge"]
+        inner = [piece for piece in e.piece_list if piece_type(piece) == "inner"]
+
+        # set edges
+        for position in edge_idx:
+            best_cost = math.inf
+
+            for piece in edges:
+                for rotated_piece in e.generate_rotation(piece):
+                    tested_solution = solution.copy()
+                    tested_solution[position] = rotated_piece
+                    cost = e.get_total_n_conflict(tested_solution)
+                    if cost <= best_cost:
+                        best_cost = cost
+                        best_piece = piece
+                        best_oriented_piece = rotated_piece
+                        solution[position] = best_oriented_piece
+
+            if len(edges) > 0:
+                edges.remove(best_piece)
+
+        # set inner pieces
+        for position in inner_idx:
+            best_cost = math.inf
+            for piece in inner:
+                for rotated_piece in e.generate_rotation(piece):
+                    tested_solution = solution.copy()
+                    tested_solution[position] = rotated_piece
+                    cost = e.get_total_n_conflict(tested_solution)
+
+                    if cost <= best_cost:
+                        best_cost = cost
+                        best_piece = piece
+                        best_oriented_piece = rotated_piece
+                        solution[position] = best_oriented_piece
+            if len(inner) > 0:
+                inner.remove(best_piece)
+
+        cost_geometry = e.get_total_n_conflict(solution)
+        if cost_geometry < best_cost_geometry:
+            best_solution = solution
+            best_cost_geometry = cost_geometry
+
+    return (best_solution, best_cost_geometry)
 
 
-def get_current_cost(solution, eternity_puzzle):
+def piece_type(piece):
+    count_gray = piece.count(GRAY)
+    return "corner" if count_gray == 2 else "edge" if count_gray == 1 else "inner"
 
-    n_conflict = 0
 
-    n_placed = len(solution)
-    n_lines = (
-        n_placed // eternity_puzzle.board_size + 1
-        if n_placed % eternity_puzzle.board_size != 0
-        else n_placed // eternity_puzzle.board_size
+def generate_corner_geometries(e: EternityPuzzle, solution):
+    c1, c2, c3, c4 = (
+        solution[0],
+        solution[e.board_size - 1],
+        solution[e.n_piece - e.board_size],
+        solution[e.n_piece - 1],
     )
-    n_columns = (
-        eternity_puzzle.board_size
-        if n_lines > 1
-        else n_placed % eternity_puzzle.board_size
+
+    solution = [(BLACK, BLACK, BLACK, BLACK) for _ in range(e.n_piece)]
+
+    g1 = deepcopy(solution)
+    g2 = deepcopy(solution)
+    g3 = deepcopy(solution)
+    g4 = deepcopy(solution)
+
+    g1[0], g1[e.board_size - 1], g1[e.n_piece - e.board_size], g1[e.n_piece - 1] = (
+        c1,
+        c2,
+        c3,
+        c4,
+    )
+    g2[0], g2[e.board_size - 1], g2[e.n_piece - e.board_size], g2[e.n_piece - 1] = (
+        c1,
+        c3,
+        c2,
+        c4,
+    )
+    g3[0], g3[e.board_size - 1], g3[e.n_piece - e.board_size], g3[e.n_piece - 1] = (
+        c1,
+        c2,
+        c4,
+        c3,
     )
 
-    for j in range(n_lines):
-        for i in range(n_columns):
-            if eternity_puzzle.board_size * j + i < n_placed:
-                k = eternity_puzzle.board_size * j + i
-                k_west = eternity_puzzle.board_size * j + (i - 1)
-                k_south = eternity_puzzle.board_size * (j - 1) + i
-                # print(
-                #     "\n solution {} \n n_placed {} \n n_lines {}\n n_columns {}\n i : {} \n j : {} \n k : {} \n k_west {} \n k_south {}".format(
-                #         solution, n_placed, n_lines, n_columns, i, j, k, k_west, k_south
-                #     )
-                # )
+    g4[0], g4[e.board_size - 1], g4[e.n_piece - e.board_size], g4[e.n_piece - 1] = (
+        c1,
+        c4,
+        c3,
+        c2,
+    )
+    return (
+        orient_corners(e, g1),
+        orient_corners(e, g2),
+        orient_corners(e, g3),
+        orient_corners(e, g4),
+    )
 
-                if i == 0 and solution[k][WEST] != GRAY:
-                    n_conflict += 1
 
-                if i == eternity_puzzle.board_size - 1 and solution[k][EAST] != GRAY:
-                    n_conflict += 1
-
-                if i > 0 and solution[k][WEST] != solution[k_west][EAST]:
-                    n_conflict += 1
-
-                if i == eternity_puzzle.board_size - 1 and solution[k][EAST] != GRAY:
-                    n_conflict += 1
-
-                if j > 0 and solution[k][SOUTH] != solution[k_south][NORTH]:
-                    n_conflict += 1
-
-                if j == 0 and solution[k][SOUTH] != GRAY:
-                    n_conflict += 1
-
-                if j == eternity_puzzle.board_size - 1 and solution[k][NORTH] != GRAY:
-                    n_conflict += 1
-
-    return n_conflict
+def orient_corners(e: EternityPuzzle, solution):
+    solution[0] = [
+        corner
+        for corner in e.generate_rotation(solution[0])
+        if corner[SOUTH] == GRAY and corner[WEST] == GRAY
+    ][0]
+    solution[e.board_size - 1] = [
+        corner
+        for corner in e.generate_rotation(solution[e.board_size - 1])
+        if corner[SOUTH] == GRAY and corner[EAST] == GRAY
+    ][0]
+    solution[e.n_piece - e.board_size] = [
+        corner
+        for corner in e.generate_rotation(solution[e.n_piece - e.board_size])
+        if corner[NORTH] == GRAY and corner[WEST] == GRAY
+    ][0]
+    solution[e.n_piece - 1] = [
+        corner
+        for corner in e.generate_rotation(solution[e.n_piece - 1])
+        if corner[NORTH] == GRAY and corner[EAST] == GRAY
+    ][0]
+    return solution

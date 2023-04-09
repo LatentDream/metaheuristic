@@ -14,4 +14,4 @@ def solve_advanced(e):
         cost is the cost of the solution
     """
 
-    solver_genetic.solve_advanced(e)
+    return solver_genetic.solve_advanced(e)
