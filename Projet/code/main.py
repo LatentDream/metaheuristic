@@ -53,7 +53,7 @@ if __name__ == "__main__":
         # Genetic Agent
         solution, n_conflict = solver_genetic.solve_advanced(e)
     elif args.agent == "tabu":
-        # Genetic Agent
+        # Tabu Agent
         solution, n_conflict = solver_tabu.solve_advanced(e)
     else:
         raise Exception("This agent does not exist")

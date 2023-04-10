@@ -5,35 +5,56 @@ import solver_heuristic
 from copy import deepcopy
 from utils.utils import *
 
+GRAY = 0
+BLACK = 23
+RED = 24
+WHITE = 25
 
-def solve_local_search(eternity_puzzle):
+NORTH = 0
+SOUTH = 1
+WEST = 2
+EAST = 3
+
+
+def solve_local_search(e: EternityPuzzle):
     """
     Local search solution of the problem
     :param eternity_puzzle: object describing the input
     :return: a tuple (solution, cost) where solution is a list of the pieces (rotations applied) and
         cost is the cost of the solution
     """
-    solution = generate_random_solution(eternity_puzzle)
-    return local_search(eternity_puzzle, solution, search_time=20 * 60)
+
+    random.seed(1234)
+    solution = generate_random_solution(e)
+    return local_search(e, solution, search_time=20 * 60)
 
 
-def local_search(e, solution, search_time=30):
+def local_search(e: EternityPuzzle, solution, search_time=30):
     """Simulated annealing local search"""
 
     start_time = time.time()
 
-    alpha = 0.999
-    temperature_init = 10
+    temperature_init = 100
+    alpha = 0.99
     temperature = temperature_init
     cost_solution = e.get_total_n_conflict(solution)
     best_solution, best_cost = solution, cost_solution
 
+    min_proba_counter = 0
     while True:
         neighboorhood = get_neighborhood(e, solution)
-        candidate = random.choices(neighboorhood)[0]
+
+        improving_candidates = [
+            c for c in neighboorhood if e.get_total_n_conflict(c) < cost_solution
+        ]
+        if len(improving_candidates) > 0:
+            candidate = improving_candidates[0]
+        else:
+            candidate = random.choices(neighboorhood)[0]
+
         cost_candidate = e.get_total_n_conflict(candidate)
-        delta = e.get_total_n_conflict(solution) - cost_candidate
-        probability = min(1, max(np.exp(-delta / temperature), 0.01))
+        delta = cost_solution - cost_candidate
+        probability = max(np.exp(-delta / temperature), 0.01)
 
         if delta < 0:
             solution = candidate
@@ -46,82 +67,43 @@ def local_search(e, solution, search_time=30):
         if cost_solution < best_cost:
             best_solution = solution
             best_cost = cost_solution
-            print(best_cost)
 
         temperature = temperature * alpha
-        if time.time() - start_time > search_time:
+
+        if probability == 0.01:
+            min_proba_counter += 1
+
+        # If probability is fixed at the minimum : restart on a random_solution
+        if min_proba_counter > 100:
+            solution = generate_random_solution(e)
+            cost_solution = e.get_total_n_conflict(solution)
+            temperature = temperature_init
+            min_proba_counter = 0
+
+        if (time.time() - start_time) >= search_time:
             break
 
-    return best_solution, e.get_total_n_conflict(best_solution)
+    return best_solution, best_cost
 
 
-def generate_random_solution(e: EternityPuzzle):
+def get_neighborhood(e: EternityPuzzle, solution):
+    neighbourhood = [solution]
 
-    solution = []
-    remaining_piece = deepcopy(e.piece_list)
+    conflict_positions = get_conflict_positions(e, solution)
 
-    for _ in range(e.n_piece):
-        range_remaining = np.arange(len(remaining_piece))
-        piece_idx = np.random.choice(range_remaining)
-        piece = remaining_piece[piece_idx]
-        permutation_idx = np.random.choice(np.arange(4))
-        piece_permuted = e.generate_rotation(piece)[permutation_idx]
-        solution.append(piece_permuted)
-        remaining_piece.remove(piece)
+    for i in conflict_positions:
+        neighbor1 = deepcopy(solution)
 
-    return solution
+        # rotate pieces with conflict
+        for rotated_piece in e.generate_rotation(neighbor1[i])[1:]:
+            neighbor1[i] = rotated_piece
+            neighbourhood.append(neighbor1)
 
+        # 2-swap a piece with a conflict with another one
+        neighbor2 = deepcopy(solution)
+        j = random.choice(range(e.n_piece))
+        for j in random.sample(range(e.n_piece), len(conflict_positions)):
+            neighbor2[i], neighbor2[j] = neighbor2[j], neighbor2[i]
+            neighbourhood.append(neighbor2)
 
-def get_neighborhood(e, solution):
-
-    solution_list = solution.copy()
-    solution_grid = list_to_grid(
-        e,
-        solution.copy(),
-    )
-    neighbourhood = []
-
-    for i in range(e.board_size):
-        for j in range(e.board_size):
-
-            neighbor1 = solution_grid.copy()
-            neighbor2 = solution_list.copy()
-
-            # Rotated pieces
-            for rotated_piece in e.generate_rotation(neighbor1[i][j]):
-                if rotated_piece != neighbor1[i][j]:
-
-                    neighbor1[i][j] = rotated_piece
-                    neighbor1 = grid_to_list(neighbor1)
-                    neighbourhood.append(neighbor1)
-                    neighbor1 = list_to_grid(
-                        e,
-                        neighbor1,
-                    )
-
-            # 2 swap with rotations
-            if i != j:
-                neighbor2[i], neighbor2[j] = neighbor2[j], neighbor2[i]
-                for rotated_piece1 in e.generate_rotation(neighbor2[i]):
-                    for rotated_piece2 in e.generate_rotation(neighbor2[j]):
-                        neighbor2[i] = rotated_piece1
-                        neighbor2[j] = rotated_piece2
-                        neighbourhood.append(neighbor2)
     return neighbourhood
-
-
-def is_improving_validity_function(eternity_puzzle, neighboorhood):
-    "Accept all the improving neighbors"
-    return [
-        n
-        for n in neighboorhood
-        if eternity_puzzle.get_total_n_conflict(n)
-        < eternity_puzzle.get_total_n_conflict(n)
-    ]
-
-
-def accept_all_validity_function(neighboorhood):
-    """
-    All the neighboors are valid (used in simulated annealing)
-    """
-    return neighboorhood

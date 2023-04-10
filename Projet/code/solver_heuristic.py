@@ -23,7 +23,6 @@ def solve_heuristic(e: EternityPuzzle):
     :return: a tuple (solution, cost) where solution is a list of the pieces (rotations applied) and
         cost is the cost of the solution
     """
-    b = e.board_size
     solution = [(BLACK, BLACK, BLACK, BLACK) for _ in range(e.n_piece)]
     corners = [piece for piece in e.piece_list if piece_type(piece) == "corner"]
     edges = [piece for piece in e.piece_list if piece_type(piece) == "edge"]
@@ -32,14 +31,24 @@ def solve_heuristic(e: EternityPuzzle):
     edge_idx = [
         i
         for i in range(1, e.n_piece - 1)
-        if (i < b - 1 or i % b == 0 or e.n_piece - i < b or (i + 1) % b == 0)
-        and (i != e.n_piece - b and i != b - 1)
+        if (
+            i < e.board_size - 1
+            or i % e.board_size == 0
+            or e.n_piece - i < e.board_size
+            or (i + 1) % e.board_size == 0
+        )
+        and (i != e.n_piece - e.board_size and i != e.board_size - 1)
     ]
 
     inner_idx = [
         i
         for i in range(e.n_piece)
-        if not (i <= b - 1 or i % b == 0 or e.n_piece - i <= b or (i + 1) % b == 0)
+        if not (
+            i <= e.board_size - 1
+            or i % e.board_size == 0
+            or e.n_piece - i <= e.board_size
+            or (i + 1) % e.board_size == 0
+        )
     ]
 
     (
@@ -49,10 +58,13 @@ def solve_heuristic(e: EternityPuzzle):
         solution[e.n_piece - 1],
     ) = (corners[0], corners[1], corners[2], corners[3])
 
+    # Generate the 4 distinct corner configurations
     corner_geometries = generate_corner_geometries(e, solution)
 
     best_cost_geometry = math.inf
     best_solution = None
+    
+    # Build the best solution with edges and inner pieces for each geometry 
     for geometry in corner_geometries:
         solution = deepcopy(geometry)
 
@@ -100,12 +112,8 @@ def solve_heuristic(e: EternityPuzzle):
             best_solution = solution
             best_cost_geometry = cost_geometry
 
+    # Return the best solution of the best geometry
     return (best_solution, best_cost_geometry)
-
-
-def piece_type(piece):
-    count_gray = piece.count(GRAY)
-    return "corner" if count_gray == 2 else "edge" if count_gray == 1 else "inner"
 
 
 def generate_corner_geometries(e: EternityPuzzle, solution):
@@ -148,33 +156,10 @@ def generate_corner_geometries(e: EternityPuzzle, solution):
         c3,
         c2,
     )
+    
     return (
         orient_corners(e, g1),
         orient_corners(e, g2),
         orient_corners(e, g3),
         orient_corners(e, g4),
     )
-
-
-def orient_corners(e: EternityPuzzle, solution):
-    solution[0] = [
-        corner
-        for corner in e.generate_rotation(solution[0])
-        if corner[SOUTH] == GRAY and corner[WEST] == GRAY
-    ][0]
-    solution[e.board_size - 1] = [
-        corner
-        for corner in e.generate_rotation(solution[e.board_size - 1])
-        if corner[SOUTH] == GRAY and corner[EAST] == GRAY
-    ][0]
-    solution[e.n_piece - e.board_size] = [
-        corner
-        for corner in e.generate_rotation(solution[e.n_piece - e.board_size])
-        if corner[NORTH] == GRAY and corner[WEST] == GRAY
-    ][0]
-    solution[e.n_piece - 1] = [
-        corner
-        for corner in e.generate_rotation(solution[e.n_piece - 1])
-        if corner[NORTH] == GRAY and corner[EAST] == GRAY
-    ][0]
-    return solution

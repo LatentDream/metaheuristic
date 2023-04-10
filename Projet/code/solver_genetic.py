@@ -12,6 +12,9 @@ import networkx as nx
 from math import inf
 import solver_heuristic
 import solver_local_search
+import os
+import json
+
 
 file_names = {"A": 16, "B": 49, "C": 64, "D": 81, "E": 100, "complet": 256}
 
@@ -33,18 +36,21 @@ def solve_advanced(e: EternityPuzzle):
     :return: a tuple (solution, cost) where solution is a list of the pieces (rotations applied) and
         cost is the cost of the solution
     """
+    if os.path.exists("heuristic_solution.json"):
+        os.remove("heuristic_solution.json")
+
     random.seed(1234)
 
     # Solve the border
-    border_time = 5
-    pop_size = 500
+    border_time = 3
+    pop_size = 40
     mutation_rate = 0
-    max_time_local_search = 1
-    tournament_size = 100
-    tournament_accepted = 20
-    num_generations = 1000
-    no_progress_generations = 1000
-    elite_size = 5
+    max_time_local_search = 30
+    tournament_size = 20
+    tournament_accepted = 5
+    num_generations = 100
+    no_progress_generations = 10
+    elite_size = 1
 
     border, border_cost = genetic_algorithm_border(
         e,
@@ -58,20 +64,20 @@ def solve_advanced(e: EternityPuzzle):
         pop_size=pop_size,
         time_limit=border_time,
     )
-    print("Border cost : {}".format(border_cost))
+    print("Border final cost : {}".format(border_cost))
     visualize(e, border, "Border")
 
     # Solve the inner puzzle
     time_limit = 20 * 60  # 20 * 60
 
-    pop_size = 1000
+    pop_size = 20
     mutation_rate = 0.05
-    max_time_local_search = 30
-    tournament_size = 100
-    tournament_accepted = 50
-    num_generations = 1000
+    max_time_local_search = 3
+    tournament_size = 10
+    tournament_accepted = 20
+    num_generations = 5
     no_progress_generations = 100
-    elite_size = 5
+    elite_size = 0
 
     return genetic_algorithm(
         e,
@@ -104,7 +110,7 @@ def genetic_algorithm(
     start_time = time.time()
     best_fitness_no_improvement = -inf
     best_fitness = -inf
-    improvement_timer = 1
+    improvement_timer = 0
     time_over = False
 
     while not time_over:
@@ -155,24 +161,18 @@ def genetic_algorithm(
             fittest_solution = population[0]
             fittest_score = fitness(e, fittest_solution)
             # print(fittest_score)
+
             if fittest_score > best_fitness_no_improvement:
-                improved_solution, improved_solution_score = local_search(
+                improved_solution, improved_fitness = local_search(
                     e, fittest_solution, max_time_local_search=max_time_local_search
                 )
-
-                improved_solution, improved_solution_score = (
-                    fittest_solution,
-                    fittest_score,
-                )
-
                 population.insert(0, improved_solution)
-                if improved_solution_score > best_fitness:
-                    best_fitness = improved_solution_score
-                    best_solution = improved_solution.copy()
-                    print(
-                        "BEST SOLUTION FOUND : Cost ",
-                        e.get_total_n_conflict(best_solution),
-                    )
+
+                if improved_fitness > best_fitness:
+                    best_fitness = improved_fitness
+                    best_solution = deepcopy(improved_solution)
+                    best_cost = e.get_total_n_conflict(best_solution)
+                    print("BEST SOLUTION FOUND : Cost ", best_cost)
 
                     for instance, length in file_names.items():
                         if length == len(best_solution):
@@ -180,9 +180,7 @@ def genetic_algorithm(
                     visualize(
                         e,
                         best_solution,
-                        "visualisation/{}/Cost {}".format(
-                            instance_name, e.get_total_n_conflict(best_solution)
-                        ),
+                        "visualisation/{}/Cost {}".format(instance_name, best_cost),
                     )
 
                 improvement_timer = 0
@@ -224,166 +222,80 @@ def fitness_border(e: EternityPuzzle, s):
 ###################################### Genetic Operaters ###############################
 
 
-def generate_random_solution(e: EternityPuzzle):
-    """Constraints :
-    Corners are on the corners and are well oriented
-    Edges are on the edges and are well oriented
-    """
-    solution = [(BLACK, BLACK, BLACK, BLACK) for _ in range(e.n_piece)]
-
-    remaining_piece = e.piece_list
-
-    corners = [piece for piece in remaining_piece if piece_type(piece) == "corner"]
-    random.shuffle(corners)
-
-    edges = [piece for piece in remaining_piece if piece_type(piece) == "edge"]
-    random.shuffle(edges)
-
-    inner = [
-        piece
-        for piece in remaining_piece
-        if ((piece not in corners) and (piece not in edges))
-    ]
-    random.shuffle(inner)
-
-    b = e.board_size
-
-    for i in range(e.n_piece):
-        # Bottom-Left corner
-        if i == 0:
-            piece = corners.pop()
-            orientations = e.generate_rotation(piece)
-            oriented_piece = [
-                p for p in orientations if p[SOUTH] == GRAY and p[WEST] == GRAY
-            ][0]
-            solution[i] = oriented_piece
-
-        # Bottom-Right corner
-        elif i == b - 1:
-            piece = corners.pop()
-            orientations = e.generate_rotation(piece)
-            oriented_piece = [
-                p for p in orientations if p[SOUTH] == GRAY and p[EAST] == GRAY
-            ][0]
-            solution[i] = oriented_piece
-
-        # Top-Left corner
-        elif i == e.n_piece - b:
-            piece = corners.pop()
-            orientations = e.generate_rotation(piece)
-            oriented_piece = [
-                p for p in orientations if p[NORTH] == GRAY and p[WEST] == GRAY
-            ][0]
-            solution[i] = oriented_piece
-
-        # Top-Right corner
-        elif i == e.n_piece - 1:
-            piece = corners.pop()
-            orientations = e.generate_rotation(piece)
-            oriented_piece = [
-                p for p in orientations if p[NORTH] == GRAY and p[EAST] == GRAY
-            ][0]
-            solution[i] = oriented_piece
-
-        # Bottom edges :
-        elif i < b - 1 and i != 0:
-            piece = edges.pop()
-            orientations = e.generate_rotation(piece)
-            oriented_piece = [p for p in orientations if p[SOUTH] == GRAY][0]
-            solution[i] = oriented_piece
-
-        # Left edges :
-        elif i % b == 0 and i != 0 and i != e.n_piece - b:
-            piece = edges.pop()
-            orientations = e.generate_rotation(piece)
-            oriented_piece = [p for p in orientations if p[WEST] == GRAY][0]
-            solution[i] = oriented_piece
-
-        # Right edges :
-        elif (i + 1) % b == 0 and i != b - 1 and i != e.n_piece - 1:
-            piece = edges.pop()
-            orientations = e.generate_rotation(piece)
-            oriented_piece = [p for p in orientations if p[EAST] == GRAY][0]
-            solution[i] = oriented_piece
-
-        # Top edges :
-        elif i + b > e.n_piece and i != e.n_piece - 1:
-            piece = edges.pop()
-            orientations = e.generate_rotation(piece)
-            oriented_piece = [p for p in orientations if p[NORTH] == GRAY][0]
-            solution[i] = oriented_piece
-
-        else:
-            piece = inner.pop()
-            solution[i] = e.generate_rotation(piece)[np.random.choice(np.arange(4))]
-
-    return solution
-
-
-def generate_random_inner_solution(e: EternityPuzzle, border):
-    """Generate a random solution but keeps the border intact"""
-
-    solution = deepcopy(border)
-    b = e.board_size
-
-    # IDs of the inner pieces
-    inner_ids = [
-        i
-        for i in range(e.n_piece)
-        if not (i <= b - 1 or i % b == 0 or e.n_piece - i <= b or (i + 1) % b == 0)
-    ]
-    inner_pieces = [solution[i] for i in inner_ids]
-    random.shuffle(inner_pieces)
-
-    for i, position in enumerate(inner_ids):
-        solution[position] = inner_pieces[i]
-
-    return solution
-
-
 def generate_population(e: EternityPuzzle, pop_size, elite_size, border=None):
     population = []
 
-    if border:
-        for _ in range(elite_size):
-            solution_heuristic, _ = solver_heuristic.solve_heuristic(e)
-            population.append(solution_heuristic)
-
+    if border != None:
+        population.append(border)
         for _ in range(pop_size):
             population.append(generate_random_inner_solution(e, border))
 
     else:
         for _ in range(elite_size):
-            solution_heuristic, _ = solver_heuristic.solve_heuristic(e)
+            solution_heuristic = get_heuristic_solution(e)
             population.append(solution_heuristic)
-
         for _ in range(pop_size):
             population.append(generate_random_solution(e))
 
     return population
 
 
+# 2-Swap with rotations on conflict pieces
 def inner_crossover(e: EternityPuzzle, parent):
     # 2-Swap with random rotations
-    b = e.board_size
     child = parent.copy()
 
-    valid_ids = [
+    inner_idx = [
         i
-        for i in range(e.n_piece)
-        if not (i <= b - 1 or i % b == 0 or e.n_piece - i <= b or (i + 1) % b == 0)
+        for i in range(e.board_size, e.n_piece - e.board_size)
+        if not (i % e.board_size == 0 or (i + 1) % e.board_size == 0)
     ]
 
     conflict_positions = get_conflict_positions(e, parent)
 
     # 2- Swap conflict with a conflict piece
-    for _ in range(len(conflict_positions)):
-        i, j = random.sample(valid_ids, 2)
-
-        if i in conflict_positions or j in conflict_positions:
+    for i in conflict_positions:
+        if i in inner_idx:
+            j = random.choice(inner_idx)
             child[i], child[j] = random.choice(
                 e.generate_rotation(parent[j])
             ), random.choice(e.generate_rotation(parent[i]))
+
+    # 2-Swap with random pieces
+    for i in inner_idx:
+        j = random.choice(inner_idx)
+        child[i], child[j] = random.choice(
+            e.generate_rotation(parent[j])
+        ), random.choice(e.generate_rotation(parent[i]))
+
+    return child
+
+
+# 2-swap edges and orient the GRAY side for both pieces
+def border_crossover(e: EternityPuzzle, parent):
+    child = deepcopy(parent)
+
+    edge_idx = [
+        i
+        for i in range(1, e.n_piece - 1)
+        if i < e.board_size - 1
+        or i % e.board_size == 0
+        or e.n_piece - i < e.board_size
+        or (i + 1) % e.board_size == 0
+    ]
+
+    conflict_positions = get_conflict_positions(e, parent)
+
+    # 2- Swap conflict with a conflict piece
+    for i in conflict_positions:
+        if i in edge_idx:
+            j = random.choice(edge_idx)
+            child[i], child[j] = swap_orientations(e, parent[j], parent[i])
+
+    # 2-Swap with random pieces
+    for i in edge_idx:
+        j = random.choice(edge_idx)
+        child[i], child[j] = swap_orientations(e, parent[j], parent[i])
 
     return child
 
@@ -525,7 +437,7 @@ def genetic_algorithm_border(
                 if improved_solution_score > best_fitness:
                     best_fitness = improved_solution_score
                     best_solution = improved_solution.copy()
-                    print("Border improved : ", best_fitness)
+                    print("New border cost : ", best_fitness)
                 improvement_timer = 0
 
             else:
@@ -542,100 +454,15 @@ def genetic_algorithm_border(
     return best_solution, fitness_border(e, best_solution)
 
 
-def border_crossover(e: EternityPuzzle, parent):
-    b = e.board_size
-    child = parent.copy()
+def get_heuristic_solution(e: EternityPuzzle):
+    if os.path.exists("heuristic_solution.json"):
+        with open("heuristic_solution.json", "r") as f:
+            solution = json.load(f)
+            solution = [tuple(sublst) for sublst in solution]
 
-    # 2-swap between 2 randomly selected locations on the edges and not in the corner
-    valid_ids = [
-        i
-        for i in range(1, e.n_piece - 1)
-        if i < b - 1 or i % b == 0 or e.n_piece - i < b or (i + 1) % b == 0
-    ]
+    else:
+        solution = solver_heuristic.solve_heuristic(e)[0]
+        with open("heuristic_solution.json", "w") as f:
+            json.dump(solution, f)
 
-    conflict_positions = get_conflict_positions(e, parent)
-
-    for _ in range(len(conflict_positions)):
-        i, j = random.sample(valid_ids, 2)
-
-        if i in conflict_positions or j in conflict_positions:
-            child[i], child[j] = swap_orientations(e, parent[j], parent[i])
-
-            # 2-swap between 2 randomly selected locations in the corners
-            valid_ids = [0, b - 1, e.n_piece - b, e.n_piece - 1]
-            i, j = random.sample(valid_ids, 2)
-            child[i], child[j] = swap_orientations(e, parent[j], parent[i])
-
-    return child
-
-
-def piece_type(piece):
-    count_gray = piece.count(GRAY)
-    return "corner" if count_gray == 2 else "edge" if count_gray == 1 else "inner"
-
-
-def swap_orientations(e: EternityPuzzle, piece1, piece2):
-    if piece_type(piece1) == "corner" and piece_type(piece2) == "corner":
-        gray_positions_1 = [i for i in range(4) if piece1[i] == GRAY]
-        gray_positions_2 = [i for i in range(4) if piece2[i] == GRAY]
-
-        for rotated_piece1 in e.generate_rotation(piece1):
-            if (
-                rotated_piece1[gray_positions_2[0]] == GRAY
-                and rotated_piece1[gray_positions_2[1]] == GRAY
-            ):
-                piece1 = rotated_piece1
-
-        for rotated_piece2 in e.generate_rotation(piece2):
-            if (
-                rotated_piece2[gray_positions_1[0]] == GRAY
-                and rotated_piece2[gray_positions_1[1]] == GRAY
-            ):
-                piece1 = rotated_piece2
-
-    if piece_type(piece1) == "edge" and piece_type(piece2) == "edge":
-        gray_position_1 = [i for i in range(4) if piece1[i] == GRAY][0]
-        gray_position_2 = [i for i in range(4) if piece2[i] == GRAY][0]
-
-        for rotated_piece1 in e.generate_rotation(piece1):
-            if rotated_piece1[gray_position_2] == GRAY:
-                piece1 = rotated_piece1
-
-        for rotated_piece2 in e.generate_rotation(piece2):
-            if rotated_piece2[gray_position_1] == GRAY:
-                piece2 = rotated_piece2
-
-    return piece1, piece2
-
-
-def get_conflict_positions(e, solution):
-    positions = []
-
-    for j in range(e.board_size):
-        for i in range(e.board_size):
-            k = e.board_size * j + i
-            k_east = e.board_size * j + (i - 1)
-            k_south = e.board_size * (j - 1) + i
-
-            if i > 0 and solution[k][WEST] != solution[k_east][EAST]:
-                positions.append(k)
-                positions.append(k_east)
-
-            if i == 0 and solution[k][WEST] != GRAY:
-                positions.append(k)
-
-            if i == e.board_size - 1 and solution[k][EAST] != GRAY:
-                positions.append(k)
-
-            if j > 0 and solution[k][SOUTH] != solution[k_south][NORTH]:
-                positions.append(k)
-                positions.append(k_south)
-
-            if j == 0 and solution[k][SOUTH] != GRAY:
-                positions.append(k)
-
-            if j == e.board_size - 1 and solution[k][NORTH] != GRAY:
-                positions.append(k)
-
-    positions = list(set(positions))
-    return positions
+    return solution
