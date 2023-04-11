@@ -42,11 +42,11 @@ def solve_advanced(e: EternityPuzzle):
     random.seed(1234)
 
     # Solve the border
-    border_time = 3
-    pop_size = 40
+    border_time = 1
+    pop_size = 20
     mutation_rate = 0
     max_time_local_search = 30
-    tournament_size = 20
+    tournament_size = 10
     tournament_accepted = 5
     num_generations = 100
     no_progress_generations = 10
@@ -70,14 +70,14 @@ def solve_advanced(e: EternityPuzzle):
     # Solve the inner puzzle
     time_limit = 20 * 60  # 20 * 60
 
-    pop_size = 20
+    pop_size = 1000
     mutation_rate = 0.05
-    max_time_local_search = 3
-    tournament_size = 10
-    tournament_accepted = 20
-    num_generations = 5
-    no_progress_generations = 100
-    elite_size = 0
+    max_time_local_search = 20
+    tournament_size = 100
+    tournament_accepted = 30
+    num_generations = 1000
+    no_progress_generations = 1000
+    elite_size = 1
 
     return genetic_algorithm(
         e,
@@ -160,9 +160,9 @@ def genetic_algorithm(
             # Update the best solution found so far
             fittest_solution = population[0]
             fittest_score = fitness(e, fittest_solution)
-            # print(fittest_score)
-
+            print(fittest_score)
             if fittest_score > best_fitness_no_improvement:
+                best_fitness_no_improvement = fittest_score
                 improved_solution, improved_fitness = local_search(
                     e, fittest_solution, max_time_local_search=max_time_local_search
                 )
@@ -226,7 +226,8 @@ def generate_population(e: EternityPuzzle, pop_size, elite_size, border=None):
     population = []
 
     if border != None:
-        population.append(border)
+        for _ in range(elite_size):
+            population.append(border)
         for _ in range(pop_size):
             population.append(generate_random_inner_solution(e, border))
 
