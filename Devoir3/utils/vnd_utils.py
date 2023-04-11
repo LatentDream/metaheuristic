@@ -148,6 +148,7 @@ def remove_delay(r: RCPSP, solution: Dict[int, int]):
 
 def optimise_by_swap(r: RCPSP, solution: Dict[int, int]):
     """
+    ! Not used, experimental code 
     1. Find the job where the delay between the end and the begening of its nearest sucessors is the longest.
     2. Find which job can be swap with the job identified in step 1.
     3. Swap the job and rebuild the solution

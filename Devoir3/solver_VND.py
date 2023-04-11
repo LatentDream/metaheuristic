@@ -12,7 +12,7 @@ from utils.vnd_utils import local_search
 
 def solve(rcpsp: RCPSP):
 
-    time_limit =  10
+    time_limit =  20 * 60 # In seconde
 
     # return VND(rcpsp, time_limit, build_neighbor_priority_with_stochasticity)
     return VND(rcpsp, time_limit, build_neighbor_priority)
@@ -39,8 +39,6 @@ def VND(r: RCPSP, time_limit, build_neighbor):
 
             while k != k_max:
                 new_solution = local_search(r, solution, k, node_neighbor)
-                # if k < k_max // 2:
-                #     new_solution = optimise_by_swap(r, new_solution)
                 solution, k = neighborhood_change(r, solution, new_solution, k)
                 
             if r.verify_solution(solution): 
