@@ -15,19 +15,7 @@ WEST = 2
 EAST = 3
 
 
-# Function to flatten a grid into a list
-def grid_to_list(grid):
-    return [piece for row in grid for piece in row]
-
-
-# Function to create a 2D grid from a list
-def list_to_grid(e: EternityPuzzle, liste):
-    grid = []
-    for i in range(e.board_size):
-        grid.append(liste[i * e.board_size : i * e.board_size + e.board_size])
-    return grid
-
-
+# Save a visualisation
 def visualize(e: EternityPuzzle, solution, name="visualisation"):
     e.display_solution(solution, name)
 
@@ -37,6 +25,7 @@ def piece_type(piece):
     return "corner" if count_gray == 2 else "edge" if count_gray == 1 else "inner"
 
 
+# Return a list of the positions of the pieces in conflict
 def get_conflict_positions(e, solution):
     positions = []
 
@@ -70,6 +59,7 @@ def get_conflict_positions(e, solution):
     return positions
 
 
+# Swap the orientation of 2 edges or 2 corners : the GRAY positions are exchanged
 def swap_orientations(e: EternityPuzzle, piece1, piece2):
     if piece_type(piece1) == "corner" and piece_type(piece2) == "corner":
         gray_positions_1 = [i for i in range(4) if piece1[i] == GRAY]
@@ -104,6 +94,7 @@ def swap_orientations(e: EternityPuzzle, piece1, piece2):
     return piece1, piece2
 
 
+# Given a solution, set the GRAY colors of the corners to the ouside
 def orient_corners(e: EternityPuzzle, solution):
     solution[0] = [
         corner
@@ -129,9 +120,8 @@ def orient_corners(e: EternityPuzzle, solution):
     return solution
 
 
+# Given a solution, set the GRAY color of the edges  to the ouside
 def orient_edges(e: EternityPuzzle, solution):
-    # Orient the corners of the solution : GRAY facing the outside
-
     south_edge_idx = [i for i in range(1, e.board_size)]
     west_edge_idx = [
         i for i in range(1, e.n_piece - e.board_size) if i % e.board_size == 0
@@ -242,3 +232,19 @@ def generate_random_inner_solution(e: EternityPuzzle, border):
         solution[position] = inner_pieces[i]
 
     return solution
+
+
+# ! Will be removed :
+
+
+# Function to flatten a grid into a list
+def grid_to_list(grid):
+    return [piece for row in grid for piece in row]
+
+
+# Function to create a 2D grid from a list
+def list_to_grid(e: EternityPuzzle, liste):
+    grid = []
+    for i in range(e.board_size):
+        grid.append(liste[i * e.board_size : i * e.board_size + e.board_size])
+    return grid

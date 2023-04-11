@@ -70,8 +70,8 @@ def solve_advanced(e: EternityPuzzle):
     # Solve the inner puzzle
     time_limit = 20 * 60  # 20 * 60
 
-    pop_size = 1000
-    mutation_rate = 0.05
+    pop_size = 100
+    mutation_rate = 1
     max_time_local_search = 20
     tournament_size = 100
     tournament_accepted = 30
@@ -125,7 +125,7 @@ def genetic_algorithm(
             # The parents selected for the next generation
             parents = population[: pop_size // 2]
 
-            # The elite is kept for the next generation
+            # The elite is kept intact for the next generation
             elite = population[:elite_size]
 
             # Create the offspring for the next generation
@@ -160,7 +160,7 @@ def genetic_algorithm(
             # Update the best solution found so far
             fittest_solution = population[0]
             fittest_score = fitness(e, fittest_solution)
-            print(fittest_score)
+            # print(fittest_score)
             if fittest_score > best_fitness_no_improvement:
                 best_fitness_no_improvement = fittest_score
                 improved_solution, improved_fitness = local_search(
@@ -438,7 +438,7 @@ def genetic_algorithm_border(
                 if improved_solution_score > best_fitness:
                     best_fitness = improved_solution_score
                     best_solution = improved_solution.copy()
-                    print("New border cost : ", best_fitness)
+                    print("New border cost : ", -best_fitness)
                 improvement_timer = 0
 
             else:
@@ -452,7 +452,7 @@ def genetic_algorithm_border(
                 time_over = True
                 break
 
-    return best_solution, fitness_border(e, best_solution)
+    return best_solution, e.get_total_n_conflict(best_solution)
 
 
 def get_heuristic_solution(e: EternityPuzzle):
