@@ -7,6 +7,7 @@ import solver_local_search
 import solver_advanced
 import solver_genetic
 import solver_tabu
+import solver_lns
 
 
 def parse_arguments():
@@ -55,6 +56,8 @@ if __name__ == "__main__":
     elif args.agent == "tabu":
         # Tabu Agent
         solution, n_conflict = solver_tabu.solve_advanced(e)
+    elif args.agent == "lns":
+        solution, n_conflict = solver_lns.solve_lns(e)
     else:
         raise Exception("This agent does not exist")
     solving_time = round((time.time() - start_time) / 60, 2)
