@@ -45,7 +45,6 @@ def solve_advanced(e: EternityPuzzle):
     border_time = 1
     pop_size = 20
     mutation_rate = 0
-    max_time_local_search = 30
     tournament_size = 10
     tournament_accepted = 5
     num_generations = 100
@@ -56,9 +55,7 @@ def solve_advanced(e: EternityPuzzle):
         e,
         num_generations=num_generations,
         no_progress_generations=no_progress_generations,
-        max_time_local_search=max_time_local_search,
         elite_size=elite_size,
-        mutation_rate=mutation_rate,
         tournament_size=tournament_size,
         tournament_accepted=tournament_accepted,
         pop_size=pop_size,
@@ -71,10 +68,10 @@ def solve_advanced(e: EternityPuzzle):
     time_limit = 20 * 60  # 20 * 60
 
     pop_size = 100
-    mutation_rate = 1
-    max_time_local_search = 20
+    mutation_rate = 0.01
     tournament_size = 100
     tournament_accepted = 30
+    max_time_local_search = 1
     num_generations = 1000
     no_progress_generations = 1000
     elite_size = 1
@@ -161,7 +158,7 @@ def genetic_algorithm(
             fittest_solution = population[0]
             fittest_score = fitness(e, fittest_solution)
             # print(fittest_score)
-            if fittest_score > best_fitness_no_improvement:
+            if fittest_score >= best_fitness_no_improvement:
                 best_fitness_no_improvement = fittest_score
                 improved_solution, improved_fitness = local_search(
                     e, fittest_solution, max_time_local_search=max_time_local_search
@@ -343,10 +340,14 @@ def selection_border(
 
 ################################# Local Search to improve valid solutions ##############################################
 def local_search(
-    e: EternityPuzzle, solution: Dict[int, int], max_time_local_search
+    e: EternityPuzzle,
+    solution: Dict[int, int],
+    max_time_local_search,
 ) -> Dict[int, int]:
     best_solution, cost = solver_local_search.local_search(
-        e, solution, max_time_local_search
+        e,
+        solution,
+        max_time_local_search,temperature_init=10e10
     )
     return best_solution, -cost
 
@@ -358,9 +359,7 @@ def genetic_algorithm_border(
     e: EternityPuzzle,
     num_generations,
     no_progress_generations,
-    max_time_local_search,
     elite_size,
-    mutation_rate,
     tournament_size,
     tournament_accepted,
     pop_size,
@@ -425,20 +424,10 @@ def genetic_algorithm_border(
             fittest_solution = population[0]
             fittest_score = fitness_border(e, fittest_solution)
             # print(fittest_score)
-            if fittest_score > best_fitness_no_improvement:
-                # todo : local search for border
-                # improved_solution, improved_solution_score = local_search(
-                #     e, fittest_solution, max_time_local_search=max_time_local_search
-                # )
-                improved_solution, improved_solution_score = (
-                    fittest_solution,
-                    fittest_score,
-                )
-                population.insert(0, improved_solution)
-                if improved_solution_score > best_fitness:
-                    best_fitness = improved_solution_score
-                    best_solution = improved_solution.copy()
-                    print("New border cost : ", -best_fitness)
+            if fittest_score > best_fitness:
+                best_fitness = fittest_score
+                best_solution = fittest_solution.copy()
+                print("New border cost : ", -best_fitness)
                 improvement_timer = 0
 
             else:
@@ -452,7 +441,7 @@ def genetic_algorithm_border(
                 time_over = True
                 break
 
-    return best_solution, e.get_total_n_conflict(best_solution)
+    return best_solution, -best_fitness
 
 
 def get_heuristic_solution(e: EternityPuzzle):

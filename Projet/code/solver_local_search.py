@@ -26,16 +26,15 @@ def solve_local_search(e: EternityPuzzle):
 
     random.seed(1234)
     solution = generate_random_solution(e)
+    # solution = solver_heuristic.solve_heuristic(e)[0]
     return local_search(e, solution, search_time=20 * 60)
 
 
-def local_search(e: EternityPuzzle, solution, search_time=30):
+def local_search(e: EternityPuzzle, solution, search_time=30,temperature_init=5,alpha=0.99):
     """Simulated annealing local search"""
 
     start_time = time.time()
 
-    temperature_init = 100
-    alpha = 0.99
     temperature = temperature_init
     cost_solution = e.get_total_n_conflict(solution)
     best_solution, best_cost = solution, cost_solution
