@@ -19,7 +19,6 @@ def solve_lns(e: EternityPuzzle):
     border_time = 1
     pop_size = 20
     mutation_rate = 0
-    max_time_local_search = 30
     tournament_size = 10
     tournament_accepted = 5
     num_generations = 100
@@ -30,14 +29,13 @@ def solve_lns(e: EternityPuzzle):
         e,
         num_generations=num_generations,
         no_progress_generations=no_progress_generations,
-        max_time_local_search=max_time_local_search,
         elite_size=elite_size,
-        mutation_rate=mutation_rate,
         tournament_size=tournament_size,
         tournament_accepted=tournament_accepted,
         pop_size=pop_size,
         time_limit=border_time,
     )
+
     print("Border final cost : {}".format(nb_conflict))
     visualize(e, initial_solution, "debogging_border")
 
@@ -74,14 +72,18 @@ def lns(e: EternityPuzzle, solution, search_time=30):
 
 def destroy(e: EternityPuzzle, solution):
     solution = deepcopy(solution) # To make sure we are not affecting the input solution
-
     print(solution)
-    visualize(e, solution, "debogging")
+    visualize(e, solution, "debouging")
     print(get_conflict_positions(e, solution))
+    # Remove pieces 
+
 
     return e, solution
 
 
 
 def rebuild(e: EternityPuzzle, destroyed_solution):
+    # Reallocated removed pieces optimally to the holes
+
+
     raise NotImplementedError()
