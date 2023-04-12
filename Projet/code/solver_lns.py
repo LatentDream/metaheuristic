@@ -39,13 +39,17 @@ def solve_lns(e: EternityPuzzle):
     )
 
     print("Border final cost : {}".format(nb_conflict))
+    
+    initial_solution = generate_random_solution(e)
     visualize(e, initial_solution, "debogging_border")
 
+    
 
     return lns(e, initial_solution, search_time=1*60)
 
 def lns(e: EternityPuzzle, solution, search_time=30):
 
+    visualize(e, solution, "debug/before_destruction")
     start_time = time.time()
     tic = start_time
     best_solution = deepcopy(solution)
@@ -55,7 +59,7 @@ def lns(e: EternityPuzzle, solution, search_time=30):
 
         while True:
 
-            new_solution = rebuild(*destroy(e, solution))
+            new_solution = rebuild(*destroy(e, solution, neighborhood_size=4, debug_visualization=True))
 
             if (nb_confllict_new_sol := e.get_total_n_conflict(new_solution)) < e.get_total_n_conflict(solution):
                 solution = new_solution
@@ -63,8 +67,6 @@ def lns(e: EternityPuzzle, solution, search_time=30):
                 if nb_confllict_new_sol < n_conflit_best_solution:
                     best_solution = deepcopy(new_solution)
                     n_conflit_best_solution = nb_confllict_new_sol
-
-            time.sleep(1)
 
             if (tac := time.time()) - start_time < search_time:
                 progress_bar.update(tac - tic)
@@ -75,28 +77,38 @@ def lns(e: EternityPuzzle, solution, search_time=30):
     return best_solution, n_conflit_best_solution
 
 
-def destroy(e: EternityPuzzle, solution, neighborhood_size=4):
-    visualize(e, solution, "debug/before_destruction")
+def destroy(e: EternityPuzzle, solution, neighborhood_size=4, debug_visualization=False):
 
     solution = deepcopy(solution) # To make sure we are not affecting the input solution
 
     # Remove k pieces with the most conflict
     conflict_position, nb_conflict = get_conflict_positions(e, solution, return_nb_conflict=True)
     pieces_with_most_conflict = sorted([(idx, nb_conflict[idx]) for idx in nb_conflict.keys()], key= lambda x: -x[1])
-    removed_pieces_idx = [pieces_with_most_conflict.pop(0)[0] for _ in range(neighborhood_size)]
-    
+
+    # p = np.array([for ])
+
+    removed_pieces_idx = []
+    while len(removed_pieces_idx) != neighborhood_size and len(pieces_with_most_conflict) != 0:
+        piece_loc_idx = pieces_with_most_conflict.pop(0)[0]
+        if piece_type(solution[piece_loc_idx]) == INNER:
+            removed_pieces_idx.append(piece_loc_idx)
+        if np.random.uniform(0.0, 1.0) < 0.25:
+            pieces_with_most_conflict.pop(0)
+        
+
     removed_pieces = []
     for idx in removed_pieces_idx:
         removed_pieces.append(solution[idx])
         solution[idx] = (BLACK, BLACK, BLACK, BLACK)
 
-    return e, solution, removed_pieces, removed_pieces_idx
+    return e, solution, removed_pieces, removed_pieces_idx, debug_visualization
 
 
 
-def rebuild(e: EternityPuzzle, destroyed_solution, removed_pieces, removed_pieces_idx):
+def rebuild(e: EternityPuzzle, destroyed_solution, removed_pieces, removed_pieces_idx, debug_visualization=False):
     # Realidxated removed pieces optimally to the holes
-    visualize(e, destroyed_solution, "debug/rebuilding")
+    if debug_visualization:
+        visualize(e, destroyed_solution, "debug/rebuilding")
 
     for _ in range(len(removed_pieces_idx)):
 
@@ -114,7 +126,9 @@ def rebuild(e: EternityPuzzle, destroyed_solution, removed_pieces, removed_piece
 
         # Fill the hole
         destroyed_solution[idx_to_fill] = piece_to_fill_hole
-    visualize(e, destroyed_solution, "debug/rebuild")
+
+    if debug_visualization:
+        visualize(e, destroyed_solution, "debug/rebuild")
 
     return destroyed_solution
 

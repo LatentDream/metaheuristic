@@ -13,7 +13,9 @@ NORTH = 0
 SOUTH = 1
 WEST = 2
 EAST = 3
-
+CORNER = "corner"
+EDGE = "edge"
+INNER = "inner"
 
 # Save a visualisation
 def visualize(e: EternityPuzzle, solution, name="visualisation"):
@@ -23,7 +25,7 @@ def visualize(e: EternityPuzzle, solution, name="visualisation"):
 
 def piece_type(piece):
     count_gray = piece.count(GRAY)
-    return "corner" if count_gray == 2 else "edge" if count_gray == 1 else "inner"
+    return CORNER if count_gray == 2 else EDGE if count_gray == 1 else INNER
 
 
 # Return a list of the positions of the pieces in conflict
