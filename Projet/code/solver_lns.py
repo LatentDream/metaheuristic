@@ -40,7 +40,7 @@ def solve_lns(e: EternityPuzzle):
 
     print("Border final cost : {}".format(nb_conflict))
     
-    initial_solution = generate_random_solution(e)
+    # initial_solution = generate_random_solution(e)
     visualize(e, initial_solution, "debogging_border")
 
     
@@ -83,18 +83,16 @@ def destroy(e: EternityPuzzle, solution, neighborhood_size=4, debug_visualizatio
 
     # Remove k pieces with the most conflict
     conflict_position, nb_conflict = get_conflict_positions(e, solution, return_nb_conflict=True)
-    pieces_with_most_conflict = sorted([(idx, nb_conflict[idx]) for idx in nb_conflict.keys()], key= lambda x: -x[1])
+    pieces_with_most_conflict = [(idx, nb_conflict[idx] + 0.1) for idx in nb_conflict.keys() if piece_type(solution[idx]) == INNER]
+    idx_conflic = [idx for idx, _ in pieces_with_most_conflict]
 
-    # p = np.array([for ])
+    probabilities = np.array([nb_conflict for _, nb_conflict in pieces_with_most_conflict])
+    probabilities = probabilities / np.sum(probabilities)
 
     removed_pieces_idx = []
-    while len(removed_pieces_idx) != neighborhood_size and len(pieces_with_most_conflict) != 0:
-        piece_loc_idx = pieces_with_most_conflict.pop(0)[0]
-        if piece_type(solution[piece_loc_idx]) == INNER:
-            removed_pieces_idx.append(piece_loc_idx)
-        if np.random.uniform(0.0, 1.0) < 0.25:
-            pieces_with_most_conflict.pop(0)
-        
+    for _ in range(neighborhood_size):
+        idx = np.random.choice(idx_conflic, p=probabilities)
+        removed_pieces_idx.append(idx)
 
     removed_pieces = []
     for idx in removed_pieces_idx:
