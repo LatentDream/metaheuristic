@@ -2,6 +2,8 @@ import numpy as np
 from copy import deepcopy
 import time
 import random
+
+from tqdm import tqdm
 from utils.utils import *
 from math import inf
 from typing import Dict
@@ -364,82 +366,92 @@ def genetic_algorithm_border(
     tournament_accepted,
     pop_size,
     time_limit,
+    debug_visualization=False
 ):
     start_time = time.time()
+    tic = start_time
     best_fitness_no_improvement = -inf
     best_fitness = -inf
     improvement_timer = 1
     time_over = False
 
-    while not time_over:
-        # Generate the initial population
-        population = generate_population(e, pop_size, elite_size)
-        population = sorted(
-            population, key=lambda s: fitness_border(e, s), reverse=True
-        )
+    print(f"Solving border ...")
+    with tqdm(total=time_limit) as progress_bar:
+    
 
-        # Iterate over the generations
-        for _ in range(num_generations):
-            # The parents selected for the next generation
-            parents = population[: pop_size // 2]
-
-            # The elite is kept for the next generation
-            elite = population[:elite_size]
-
-            # Create the offspring for the next generation
-            offspring = []
-            for j in range(len(parents) // 2):
-                parent1 = parents[j]
-                parent2 = parents[len(parents) - j - 1]
-
-                child1 = border_crossover(
-                    e,
-                    parent1,
-                )
-                child2 = border_crossover(
-                    e,
-                    parent2,
-                )
-
-                offspring.append(child1)
-                offspring.append(child2)
-
-            # Select the survivors for the next generation : we keep the same population size
-            population = (
-                selection_border(
-                    e,
-                    parents + offspring,
-                    pop_size,
-                    tournament_size,
-                    tournament_accepted,
-                )
-                + elite
-            )
-
+        while not time_over:
+            # Generate the initial population
+            population = generate_population(e, pop_size, elite_size)
             population = sorted(
                 population, key=lambda s: fitness_border(e, s), reverse=True
             )
 
-            # Update the best solution found so far
-            fittest_solution = population[0]
-            fittest_score = fitness_border(e, fittest_solution)
-            # print(fittest_score)
-            if fittest_score > best_fitness:
-                best_fitness = fittest_score
-                best_solution = fittest_solution.copy()
-                print("New border cost : ", -best_fitness)
-                improvement_timer = 0
+            # Iterate over the generations
+            for _ in range(num_generations):
+                # The parents selected for the next generation
+                parents = population[: pop_size // 2]
 
-            else:
-                improvement_timer += 1
-                # If no improvement is made during too many generations, restart on a new population
-                if improvement_timer > no_progress_generations:
+                # The elite is kept for the next generation
+                elite = population[:elite_size]
+
+                # Create the offspring for the next generation
+                offspring = []
+                for j in range(len(parents) // 2):
+                    parent1 = parents[j]
+                    parent2 = parents[len(parents) - j - 1]
+
+                    child1 = border_crossover(
+                        e,
+                        parent1,
+                    )
+                    child2 = border_crossover(
+                        e,
+                        parent2,
+                    )
+
+                    offspring.append(child1)
+                    offspring.append(child2)
+
+                # Select the survivors for the next generation : we keep the same population size
+                population = (
+                    selection_border(
+                        e,
+                        parents + offspring,
+                        pop_size,
+                        tournament_size,
+                        tournament_accepted,
+                    )
+                    + elite
+                )
+
+                population = sorted(
+                    population, key=lambda s: fitness_border(e, s), reverse=True
+                )
+
+                # Update the best solution found so far
+                fittest_solution = population[0]
+                fittest_score = fitness_border(e, fittest_solution)
+                # print(fittest_score)
+                if fittest_score > best_fitness:
+                    best_fitness = fittest_score
+                    best_solution = fittest_solution.copy()
+                    if debug_visualization:
+                        visualize(e, best_solution, "debug/debug")
                     improvement_timer = 0
-                    break
 
-            if time.time() - start_time > time_limit:
-                time_over = True
-                break
+                else:
+                    improvement_timer += 1
+                    # If no improvement is made during too many generations, restart on a new population
+                    if improvement_timer > no_progress_generations:
+                        improvement_timer = 0
+                        break
+
+                if (tac := time.time()) - start_time < time_limit:
+                    progress_bar.update(tac - tic)
+                    tic = tac
+                else:
+                    time_over = True
+                    break
 
     return best_solution, -best_fitness
 
