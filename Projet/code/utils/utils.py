@@ -8,11 +8,11 @@ GRAY = 0
 BLACK = 23
 RED = 24
 WHITE = 25
-
 NORTH = 0
 SOUTH = 1
 WEST = 2
 EAST = 3
+
 CORNER = "corner"
 EDGE = "edge"
 INNER = "inner"

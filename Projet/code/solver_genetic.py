@@ -20,16 +20,6 @@ import json
 
 file_names = {"A": 16, "B": 49, "C": 64, "D": 81, "E": 100, "complet": 256}
 
-GRAY = 0
-BLACK = 23
-RED = 24
-WHITE = 25
-
-NORTH = 0
-SOUTH = 1
-WEST = 2
-EAST = 3
-
 
 def solve_advanced(e: EternityPuzzle):
     """
@@ -229,6 +219,7 @@ def generate_population(e: EternityPuzzle, pop_size, elite_size, border=None):
             population.append(border)
         for _ in range(pop_size):
             population.append(generate_random_inner_solution(e, border))
+        
 
     else:
         for _ in range(elite_size):
@@ -236,7 +227,6 @@ def generate_population(e: EternityPuzzle, pop_size, elite_size, border=None):
             population.append(solution_heuristic)
         for _ in range(pop_size):
             population.append(generate_random_solution(e))
-
     return population
 
 
@@ -457,14 +447,14 @@ def genetic_algorithm_border(
 
 
 def get_heuristic_solution(e: EternityPuzzle):
-    if os.path.exists("heuristic_solution.json"):
-        with open("heuristic_solution.json", "r") as f:
+    if os.path.exists(f"heuristic_solution_{e.board_size}.json"):
+        with open(f"heuristic_solution_{e.board_size}.json", "r") as f:
             solution = json.load(f)
             solution = [tuple(sublst) for sublst in solution]
 
     else:
         solution = solver_heuristic.solve_heuristic(e)[0]
-        with open("heuristic_solution.json", "w") as f:
+        with open(f"heuristic_solution_{e.board_size}.json", "w") as f:
             json.dump(solution, f)
 
     return solution

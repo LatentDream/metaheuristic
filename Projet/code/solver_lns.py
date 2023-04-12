@@ -9,7 +9,6 @@ from copy import deepcopy
 import time
 from tqdm import tqdm
 
-BLACK = 23
 
 def solve_lns(e: EternityPuzzle):
     """
@@ -17,19 +16,19 @@ def solve_lns(e: EternityPuzzle):
     """
 
     #! Debug option
-    debug = True
+    debug = False
 
     random.seed(1998)
 
     # Solve the border
     border_time = 1 * 60
-    pop_size = 20
+    pop_size = 30
     mutation_rate = 0
     tournament_size = 10
     tournament_accepted = 5
     num_generations = 100
     no_progress_generations = 10
-    elite_size = 1
+    elite_size = 2
 
     initial_solution, nb_conflict = genetic_algorithm_border(
         e,
