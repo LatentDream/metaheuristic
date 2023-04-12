@@ -53,11 +53,12 @@ def solve_lns(e: EternityPuzzle):
 
 def lns(e: EternityPuzzle, solution, search_time=30, debug=False):
 
-    visualize(e, solution, "debug/before_destruction")
+    if debug: visualize(e, solution, "debug/before_destruction")
     start_time = time.time()
     tic = start_time
     best_solution = deepcopy(solution)
     n_conflit_best_solution = e.get_total_n_conflict(best_solution)
+
 
     print(f"Solving inner puzzle ...")
     with tqdm(total=search_time) as progress_bar:
