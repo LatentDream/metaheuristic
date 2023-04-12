@@ -8,6 +8,8 @@ from copy import deepcopy
 import time
 from tqdm import tqdm
 
+BLACK = 23
+
 def solve_lns(e: EternityPuzzle):
     """
     Large neighborhood search
@@ -55,13 +57,16 @@ def lns(e: EternityPuzzle, solution, search_time=30):
 
             new_solution = rebuild(*destroy(e, solution))
 
-            if nb_confllict_new_sol := (e.get_total_n_conflict(new_solution)) < e.get_total_n_conflict(solution):
+            if (nb_confllict_new_sol := e.get_total_n_conflict(new_solution)) < e.get_total_n_conflict(solution):
                 solution = new_solution
+                print(nb_confllict_new_sol)
                 if nb_confllict_new_sol < n_conflit_best_solution:
                     best_solution = deepcopy(new_solution)
                     n_conflit_best_solution = nb_confllict_new_sol
 
-            if (tac := time()) - start_time < search_time:
+            time.sleep(1)
+
+            if (tac := time.time()) - start_time < search_time:
                 progress_bar.update(tac - tic)
                 tic = tac
             else:
@@ -70,20 +75,79 @@ def lns(e: EternityPuzzle, solution, search_time=30):
     return best_solution, n_conflit_best_solution
 
 
-def destroy(e: EternityPuzzle, solution):
+def destroy(e: EternityPuzzle, solution, neighborhood_size=4):
+    visualize(e, solution, "debug/before_destruction")
+
     solution = deepcopy(solution) # To make sure we are not affecting the input solution
-    print(solution)
-    visualize(e, solution, "debouging")
-    print(get_conflict_positions(e, solution))
-    # Remove pieces 
+
+    # Remove k pieces with the most conflict
+    conflict_position, nb_conflict = get_conflict_positions(e, solution, return_nb_conflict=True)
+    pieces_with_most_conflict = sorted([(idx, nb_conflict[idx]) for idx in nb_conflict.keys()], key= lambda x: -x[1])
+    removed_pieces_idx = [pieces_with_most_conflict.pop(0)[0] for _ in range(neighborhood_size)]
+    
+    removed_pieces = []
+    for idx in removed_pieces_idx:
+        removed_pieces.append(solution[idx])
+        solution[idx] = (BLACK, BLACK, BLACK, BLACK)
+
+    return e, solution, removed_pieces, removed_pieces_idx
 
 
-    return e, solution
+
+def rebuild(e: EternityPuzzle, destroyed_solution, removed_pieces, removed_pieces_idx):
+    # Realidxated removed pieces optimally to the holes
+    visualize(e, destroyed_solution, "debug/rebuilding")
+
+    for _ in range(len(removed_pieces_idx)):
+
+        k = random.choice([i for i in range(len(removed_pieces_idx))])
+        idx_to_fill = removed_pieces_idx[k]
+        del removed_pieces_idx[k]
+
+        # Find piece that have the best fit
+        idx_of_piece_use_to_fill_hole, piece_to_fill_hole, min_number_of_conflit = -1, None, 5
+        for i, piece in enumerate(removed_pieces):
+            best_fit, number_of_conflit = find_best_fit(e, destroyed_solution, idx_to_fill, piece)
+            if number_of_conflit < min_number_of_conflit:
+                idx_of_piece_use_to_fill_hole, piece_to_fill_hole, min_number_of_conflit = i, best_fit, number_of_conflit
+        del removed_pieces[idx_of_piece_use_to_fill_hole]
+
+        # Fill the hole
+        destroyed_solution[idx_to_fill] = piece_to_fill_hole
+    visualize(e, destroyed_solution, "debug/rebuild")
+
+    return destroyed_solution
 
 
 
-def rebuild(e: EternityPuzzle, destroyed_solution):
-    # Reallocated removed pieces optimally to the holes
+
+def find_best_fit(e: EternityPuzzle, solution, idx, piece):
+    
+    piece_best_fit = sorted([(rotated_piece, get_number_conflict(e, solution, idx, rotated_piece)) for rotated_piece in e.generate_rotation(piece)], key=lambda x: x[1])
+
+    return piece_best_fit[0]
 
 
-    raise NotImplementedError()
+
+def get_number_conflict(e: EternityPuzzle, solution, idx, piece):
+    """ Swipe with side not supported """
+
+    i , j = idx % e.board_size, idx // e.board_size
+    idx_south =  e.board_size * (j - 1) + i
+    idx_north =  e.board_size * (j + 1) + i
+    idx_east =   e.board_size * j + (i - 1)
+    idx_west =   e.board_size * j + (i + 1)
+
+    nb_conflict = 0
+
+    if piece[WEST]  != solution[idx_west][EAST]:
+        nb_conflict += 1
+    if piece[NORTH] != solution[idx_north][SOUTH]:
+        nb_conflict += 1
+    if piece[EAST]  != solution[idx_east][WEST]:
+        nb_conflict += 1
+    if piece[SOUTH] != solution[idx_south][NORTH]:
+        nb_conflict += 1
+
+    return nb_conflict
+
