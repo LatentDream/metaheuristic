@@ -365,7 +365,7 @@ def genetic_algorithm_border(
     improvement_timer = 1
     time_over = False
 
-    print(f"Solving border ...")
+    print(f"  [INFO] Solving border ...")
     with tqdm(total=time_limit) as progress_bar:
     
 
