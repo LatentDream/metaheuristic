@@ -42,7 +42,7 @@ def solve_lns(e: EternityPuzzle):
     initial_solution, nb_conflict = genetic_algorithm_border(e, num_generations=num_generations, no_progress_generations=no_progress_generations, elite_size=elite_size, tournament_size=tournament_size, tournament_accepted=tournament_accepted, pop_size=pop_size, time_limit=border_time, debug_visualization=debug)
     print("  [INFO] Border final cost : {}".format(nb_conflict))
     # initial_solution = generate_random_inner_solution(e, initial_solution)
-    visualize(e, initial_solution, "debogging_border")
+    if debug: visualize(e, initial_solution, "debug/debuging_init")
 
     return lns(e, initial_solution, search_time=lns_search_time, neighborhood_size=neighborhood_size, allow_adjacent=allow_adjacent, tabu_queue_size=tabu_queue_size, debug=debug)
 
