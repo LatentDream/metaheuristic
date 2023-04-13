@@ -27,6 +27,7 @@ def solve_heuristic(e: EternityPuzzle):
     corners = [piece for piece in e.piece_list if piece_type(piece) == "corner"]
     edges = [piece for piece in e.piece_list if piece_type(piece) == "edge"]
     inner = [piece for piece in e.piece_list if piece_type(piece) == "inner"]
+    color_count = {color: 0 for color in e.build_color_dict()}
 
     edge_idx = [
         i
@@ -63,8 +64,8 @@ def solve_heuristic(e: EternityPuzzle):
 
     best_cost_geometry = math.inf
     best_solution = None
-    
-    # Build the best solution with edges and inner pieces for each geometry 
+
+    # Build the best solution with edges and inner pieces for each geometry
     for geometry in corner_geometries:
         solution = deepcopy(geometry)
 
@@ -94,16 +95,37 @@ def solve_heuristic(e: EternityPuzzle):
         for position in inner_idx:
             best_cost = math.inf
             for piece in inner:
+                # print(color_count)
                 for rotated_piece in e.generate_rotation(piece):
                     tested_solution = solution.copy()
                     tested_solution[position] = rotated_piece
                     cost = e.get_total_n_conflict(tested_solution)
 
-                    if cost <= best_cost:
+                    if cost < best_cost:
                         best_cost = cost
                         best_piece = piece
                         best_oriented_piece = rotated_piece
                         solution[position] = best_oriented_piece
+                        color_count = update_color_counter(
+                            color_count, solution[position]
+                        )
+
+                    elif cost == best_cost and evaluate_color_counter(
+                        update_color_counter(color_count, piece)
+                    ) + 1 < evaluate_color_counter(color_count):
+                        best_cost = cost
+                        best_piece = piece
+                        best_oriented_piece = rotated_piece
+                        solution[position] = best_oriented_piece
+                        color_count = update_color_counter(
+                            color_count, solution[position]
+                        )
+                    # print(
+                    #     evaluate_color_counter(update_color_counter(color_count, piece))
+                    #     + 1
+                    #     > evaluate_color_counter(color_count)
+                    # )
+
             if len(inner) > 0:
                 inner.remove(best_piece)
 
@@ -156,10 +178,23 @@ def generate_corner_geometries(e: EternityPuzzle, solution):
         c3,
         c2,
     )
-    
+
     return (
         orient_corners(e, g1),
         orient_corners(e, g2),
         orient_corners(e, g3),
         orient_corners(e, g4),
     )
+
+
+def update_color_counter(color_count, piece):
+    color_count_copy = deepcopy(color_count)
+    for color in piece:
+        color_count_copy[color] += 1
+    return color_count_copy
+
+
+def evaluate_color_counter(color_count):
+    count_zero = len([value for value in color_count.values() if value == 0])
+    return count_zero
+    return sum(value**2 for value in color_count.values())

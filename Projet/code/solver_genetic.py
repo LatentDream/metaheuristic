@@ -71,9 +71,9 @@ def solve_advanced(e: EternityPuzzle):
     mutation_rate = 0.01
     tournament_size = 100
     tournament_accepted = 30
-    max_time_local_search = 1
+    max_time_local_search = 10
     num_generations = 1000
-    no_progress_generations = 1000
+    no_progress_generations = 10
     elite_size = 1
 
     return genetic_algorithm(
@@ -366,7 +366,6 @@ def genetic_algorithm_border(
     time_limit,
 ):
     start_time = time.time()
-    best_fitness_no_improvement = -inf
     best_fitness = -inf
     improvement_timer = 1
     time_over = False
@@ -423,7 +422,6 @@ def genetic_algorithm_border(
             # Update the best solution found so far
             fittest_solution = population[0]
             fittest_score = fitness_border(e, fittest_solution)
-            # print(fittest_score)
             if fittest_score > best_fitness:
                 best_fitness = fittest_score
                 best_solution = fittest_solution.copy()
