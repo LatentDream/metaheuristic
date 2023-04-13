@@ -19,16 +19,16 @@ def solve_lns(e: EternityPuzzle):
     """
 
     #! Debug option
-    debug = True
+    debug = False
 
     #? Option
     tabu_queue_size=10
-    lns_search_time = 1*60
-    neighborhood_size = 15
+    lns_search_time = 5*60
+    neighborhood_size = 5
     allow_adjacent = True
 
     #?  Solve the border
-    border_time = 1 * 10
+    border_time = 1 * 5
     pop_size = 30
     mutation_rate = 0
     tournament_size = 10
@@ -58,8 +58,7 @@ def lns(e: EternityPuzzle, solution, search_time=30, neighborhood_size=5, allow_
     if debug: visualize(e, solution, "debug/before_destruction")
     start_time = time.time()
     tic = start_time
-    best_solution = deepcopy(solution)
-    n_conflit_best_solution = e.get_total_n_conflict(best_solution)
+    n_conflit_best_solution = e.get_total_n_conflict(solution)
 
     tabu_queue = []
 
@@ -69,12 +68,15 @@ def lns(e: EternityPuzzle, solution, search_time=30, neighborhood_size=5, allow_
         while True:
 
             new_solution = rebuild(*destroy(e, solution, neighborhood_size=neighborhood_size, tabu_idx=tabu_queue, allow_adjacent=allow_adjacent, debug_visualization=debug))
+            if (nb_confllict_new_sol := e.get_total_n_conflict(new_solution)) < e.get_total_n_conflict(solution):
+                solution = new_solution
+                n_conflit_best_solution = nb_confllict_new_sol         
+            
+            new_solution = local_swap(e, solution)
 
             if (nb_confllict_new_sol := e.get_total_n_conflict(new_solution)) < e.get_total_n_conflict(solution):
                 solution = new_solution
-                if nb_confllict_new_sol < n_conflit_best_solution:
-                    best_solution = deepcopy(new_solution)
-                    n_conflit_best_solution = nb_confllict_new_sol
+                n_conflit_best_solution = nb_confllict_new_sol  
 
             while len(tabu_queue) > tabu_queue_size:
                 tabu_queue.pop(0)
@@ -85,8 +87,11 @@ def lns(e: EternityPuzzle, solution, search_time=30, neighborhood_size=5, allow_
             else:
                 break
 
-    return best_solution, n_conflit_best_solution
+    return solution, n_conflit_best_solution
 
+
+def local_swap(e, solution):
+    return local_search_rebuild(*destroy(e, solution, neighborhood_size=4, allow_adjacent=True))
 
 
 def destroy(e: EternityPuzzle, solution, neighborhood_size: int=4, tabu_idx: List=None, allow_adjacent: bool=False, debug_visualization: bool=False):
@@ -154,6 +159,42 @@ def rebuild(e: EternityPuzzle, destroyed_solution, removed_pieces, removed_piece
     return destroyed_solution
 
 
+def local_search_rebuild(e: EternityPuzzle, destroyed_solution, removed_pieces, holes_idx, debug_visualization=False):
+    """ O(len(removed_pieces)!) """
+
+    assert len(removed_pieces) == len(holes_idx)
+
+    if len(holes_idx) == 0:
+        return destroyed_solution
+
+    i = 0
+    solution_found = []
+    while i < len(holes_idx):
+        # Try to fill the hole
+        hole_idx = holes_idx[i]
+        for j, removed_piece in enumerate(removed_pieces):
+            best_fit, number_of_conflit = find_best_fit(e, destroyed_solution, hole_idx, removed_piece) 
+
+            # Copy Args
+            rebuild_solution = copy.deepcopy(destroyed_solution)
+            rebuild_solution[hole_idx] = best_fit
+            rebuild_removed_pieces = copy.deepcopy(removed_pieces)
+            del rebuild_removed_pieces[j]
+            rebuild_holes_idx = copy.deepcopy(holes_idx)
+            del rebuild_holes_idx[i]
+
+            # Fill next hole
+            rebuild_solution = local_search_rebuild(e, rebuild_solution, rebuild_removed_pieces, rebuild_holes_idx)
+            solution_found.append(rebuild_solution)
+
+        i += 1
+
+    sorted_solution = sorted([(solution, e.get_total_n_conflict(solution)) for solution in solution_found], key=lambda x: x[1])
+    best_solution = sorted_solution[0][0]
+
+    return best_solution
+
+
 
 def find_best_fit(e: EternityPuzzle, solution, idx, piece):
     piece_best_fit = sorted([(rotated_piece, get_number_conflict(e, solution, idx, rotated_piece)) for rotated_piece in e.generate_rotation(piece)], key=lambda x: x[1])
@@ -196,11 +237,11 @@ def get_number_conflict(e: EternityPuzzle, solution, idx, piece):
     nb_conflict = 0
     if piece[WEST]  != solution[idx_west][EAST] and solution[idx_west][EAST] != BLACK:
         nb_conflict += 1
-    if piece[NORTH] != solution[idx_north][SOUTH] and solution[idx_west][SOUTH] != BLACK:
+    if piece[NORTH] != solution[idx_north][SOUTH] and solution[idx_north][SOUTH] != BLACK:
         nb_conflict += 1
-    if piece[EAST]  != solution[idx_east][WEST] and solution[idx_west][WEST] != BLACK:
+    if piece[EAST]  != solution[idx_east][WEST] and solution[idx_east][WEST] != BLACK:
         nb_conflict += 1
-    if piece[SOUTH] != solution[idx_south][NORTH] and solution[idx_west][NORTH] != BLACK:
+    if piece[SOUTH] != solution[idx_south][NORTH] and solution[idx_south][NORTH] != BLACK:
         nb_conflict += 1
 
     return nb_conflict
