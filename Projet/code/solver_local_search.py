@@ -1,7 +1,6 @@
 import numpy as np
 import time
 import random
-import solver_heuristic
 from copy import deepcopy
 from utils.utils import *
 
@@ -26,11 +25,12 @@ def solve_local_search(e: EternityPuzzle):
 
     random.seed(1234)
     solution = generate_random_solution(e)
-    # solution = solver_heuristic.solve_heuristic(e)[0]
     return local_search(e, solution, search_time=20 * 60)
 
 
-def local_search(e: EternityPuzzle, solution, search_time=30,temperature_init=5,alpha=0.99):
+def local_search(
+    e: EternityPuzzle, solution, search_time=30, temperature_init=10, alpha=0.9
+):
     """Simulated annealing local search"""
 
     start_time = time.time()
@@ -41,13 +41,14 @@ def local_search(e: EternityPuzzle, solution, search_time=30,temperature_init=5,
 
     min_proba_counter = 0
     while True:
-        neighboorhood = get_neighborhood(e, solution)
 
+        neighboorhood = get_neighborhood(e, solution)
         improving_candidates = [
             c for c in neighboorhood if e.get_total_n_conflict(c) < cost_solution
         ]
+        
         if len(improving_candidates) > 0:
-            candidate = improving_candidates[0]
+            candidate = random.choice(improving_candidates) 
         else:
             candidate = random.choices(neighboorhood)[0]
 
@@ -66,6 +67,7 @@ def local_search(e: EternityPuzzle, solution, search_time=30,temperature_init=5,
         if cost_solution < best_cost:
             best_solution = solution
             best_cost = cost_solution
+            print(f"Local Search cost: {best_cost}", end="\r")
 
         temperature = temperature * alpha
 

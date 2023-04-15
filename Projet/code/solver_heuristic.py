@@ -95,7 +95,6 @@ def solve_heuristic(e: EternityPuzzle):
         for position in inner_idx:
             best_cost = math.inf
             for piece in inner:
-                # print(color_count)
                 for rotated_piece in e.generate_rotation(piece):
                     tested_solution = solution.copy()
                     tested_solution[position] = rotated_piece
@@ -112,7 +111,7 @@ def solve_heuristic(e: EternityPuzzle):
 
                     elif cost == best_cost and evaluate_color_counter(
                         update_color_counter(color_count, piece)
-                    ) + 1 < evaluate_color_counter(color_count):
+                    ) < evaluate_color_counter(color_count):
                         best_cost = cost
                         best_piece = piece
                         best_oriented_piece = rotated_piece
@@ -122,7 +121,7 @@ def solve_heuristic(e: EternityPuzzle):
                         )
                     # print(
                     #     evaluate_color_counter(update_color_counter(color_count, piece))
-                    #     + 1
+                    #     -10
                     #     > evaluate_color_counter(color_count)
                     # )
 
@@ -195,6 +194,4 @@ def update_color_counter(color_count, piece):
 
 
 def evaluate_color_counter(color_count):
-    count_zero = len([value for value in color_count.values() if value == 0])
-    return count_zero
-    return sum(value**2 for value in color_count.values())
+    return sum(color_count**2 for color_count in color_count.values())
