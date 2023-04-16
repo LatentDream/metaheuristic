@@ -58,7 +58,7 @@ if __name__ == "__main__":
         solution, n_conflict = solver_genetic.solve_advanced(e)
     elif args.agent == "lns":
         # Tabu Agent
-        solution, n_conflict = solver_lns.solve_advanced(e)
+        solution, n_conflict = solver_lns.solve_lns(e)
     else:
         raise Exception("This agent does not exist")
     solving_time = round((time.time() - start_time) / 60, 2)

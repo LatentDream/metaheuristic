@@ -3,6 +3,7 @@ import numpy as np
 import math
 import copy
 from solver_genetic import genetic_algorithm_border
+import solver_heuristic_layer
 from utils.utils import *
 import itertools
 from copy import deepcopy
@@ -39,7 +40,8 @@ def solve_lns(e: EternityPuzzle):
 
     random.seed(1998)
     
-    initial_solution, nb_conflict = genetic_algorithm_border(e, num_generations=num_generations, no_progress_generations=no_progress_generations, elite_size=elite_size, tournament_size=tournament_size, tournament_accepted=tournament_accepted, pop_size=pop_size, time_limit=border_time, debug_visualization=debug)
+    # initial_solution, nb_conflict = genetic_algorithm_border(e, num_generations=num_generations, no_progress_generations=no_progress_generations, elite_size=elite_size, tournament_size=tournament_size, tournament_accepted=tournament_accepted, pop_size=pop_size, time_limit=border_time, debug_visualization=debug)
+    initial_solution, nb_conflict = solver_heuristic_layer.solve_heuristic(e)
     print("  [INFO] Border final cost : {}".format(nb_conflict))
     # initial_solution = generate_random_inner_solution(e, initial_solution)
     if debug: visualize(e, initial_solution, "debug/debuging_init")
