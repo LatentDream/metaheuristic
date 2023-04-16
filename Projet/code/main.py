@@ -6,8 +6,8 @@ import solver_heuristic
 import solver_local_search
 import solver_advanced
 import solver_genetic
-import solver_tabu
 import solver_lns
+import solver_heuristic_layer
 
 
 def parse_arguments():
@@ -44,6 +44,9 @@ if __name__ == "__main__":
     elif args.agent == "heuristic":
         # Agent based on a constructive heuristic (Phase 1)
         solution, n_conflict = solver_heuristic.solve_heuristic(e)
+    elif args.agent == "heuristic_layer":
+        # Heuristic construction layer by layer
+        solution, n_conflict = solver_heuristic_layer.solve_heuristic(e)
     elif args.agent == "local_search":
         # Agent based on a local search (Phase 2)
         solution, n_conflict = solver_local_search.solve_local_search(e)
@@ -53,10 +56,8 @@ if __name__ == "__main__":
     elif args.agent == "genetic":
         # Genetic Agent
         solution, n_conflict = solver_genetic.solve_advanced(e)
-    elif args.agent == "tabu":
-        # Tabu Agent
-        solution, n_conflict = solver_tabu.solve_advanced(e)
     elif args.agent == "lns":
+        # Tabu Agent
         solution, n_conflict = solver_lns.solve_lns(e)
     else:
         raise Exception("This agent does not exist")

@@ -12,7 +12,7 @@ import random
 import numpy as np
 import networkx as nx
 from math import inf
-import solver_heuristic
+import solver_heuristic_layer
 import solver_local_search
 import os
 import json
@@ -34,7 +34,7 @@ def solve_advanced(e: EternityPuzzle):
     random.seed(1234)
 
     # Solve the border
-    border_time = 1
+    border_time = 60
     pop_size = 20
     mutation_rate = 0
     tournament_size = 10
@@ -63,9 +63,9 @@ def solve_advanced(e: EternityPuzzle):
     mutation_rate = 0.01
     tournament_size = 100
     tournament_accepted = 30
-    max_time_local_search = 1
+    max_time_local_search = 10
     num_generations = 1000
-    no_progress_generations = 1000
+    no_progress_generations = 10
     elite_size = 1
 
     return genetic_algorithm(
@@ -161,7 +161,7 @@ def genetic_algorithm(
                     best_fitness = improved_fitness
                     best_solution = deepcopy(improved_solution)
                     best_cost = e.get_total_n_conflict(best_solution)
-                    print("BEST SOLUTION FOUND : Cost ", best_cost)
+                    print("BEST SOLUTION FOUND : Cost {}".format(best_cost), end="\r")
 
                     for instance, length in file_names.items():
                         if length == len(best_solution):
@@ -337,9 +337,7 @@ def local_search(
     max_time_local_search,
 ) -> Dict[int, int]:
     best_solution, cost = solver_local_search.local_search(
-        e,
-        solution,
-        max_time_local_search,temperature_init=10e10
+        e, solution, max_time_local_search, temperature_init=10e10
     )
     return best_solution, -cost
 
@@ -359,8 +357,11 @@ def genetic_algorithm_border(
     debug_visualization=False
 ):
     start_time = time.time()
+<<<<<<< HEAD
     tic = start_time
     best_fitness_no_improvement = -inf
+=======
+>>>>>>> origin/main
     best_fitness = -inf
     improvement_timer = 1
     time_over = False
@@ -376,10 +377,21 @@ def genetic_algorithm_border(
                 population, key=lambda s: fitness_border(e, s), reverse=True
             )
 
+<<<<<<< HEAD
             # Iterate over the generations
             for _ in range(num_generations):
                 # The parents selected for the next generation
                 parents = population[: pop_size // 2]
+=======
+            # Update the best solution found so far
+            fittest_solution = population[0]
+            fittest_score = fitness_border(e, fittest_solution)
+            if fittest_score > best_fitness:
+                best_fitness = fittest_score
+                best_solution = fittest_solution.copy()
+                print("Border cost : ", -best_fitness, end="\r")
+                improvement_timer = 0
+>>>>>>> origin/main
 
                 # The elite is kept for the next generation
                 elite = population[:elite_size]
