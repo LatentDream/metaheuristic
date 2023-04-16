@@ -9,9 +9,8 @@ import time
 
 
 
-def prioritise_neighborhhod(e: EternityPuzzle, i, j, sigma, inverted, debug=False):
+def prioritise_neighborhhod(e: EternityPuzzle, i, j, sigma, inverted=False, debug=False):
      #? Generate Gaussian filter 
-    sigma=0.5
     muu=0
 
     i, j = 2*i, 2*j
@@ -44,23 +43,18 @@ def prioritise_neighborhhod(e: EternityPuzzle, i, j, sigma, inverted, debug=Fals
 
     neighborhood = gaussian[i_lower:i_upper, j_lower:j_upper]
 
-    print(neighborhood)
-
     if debug:
         plt.imshow(neighborhood, cmap='binary')
         plt.colorbar()
-        plt.savefig("selected_neighborhood")
+        plt.savefig("debug/selected_neighborhood")
         plt.close()
 
     return neighborhood
 
 
-def swap(e, solution, k, debug=False):
-    return gloton_place_removed_pieces(*choose(e, solution, k, nb_piece_to_choose=2, debug=debug))
+def swap(e, solution, k, nb_piece_to_swap=2, debug=False):
+    return gloton_place_removed_pieces(*choose(e, solution, k, nb_piece_to_choose=nb_piece_to_swap, debug=debug))
 
-
-def rotate(e, solution, k, debug=False):
-    return gloton_place_removed_pieces(*choose(e, solution, k, nb_piece_to_choose=1, debug=debug))
 
 
 def choose(e: EternityPuzzle, solution, probabilities, nb_piece_to_choose: int=2, debug: bool=False):
@@ -71,15 +65,20 @@ def choose(e: EternityPuzzle, solution, probabilities, nb_piece_to_choose: int=2
     conflict_position, idx_to_nb_conflict = get_conflict_positions(e, solution, return_nb_conflict=True)
 
     # Sample the distribution
-    removed_pieces_idx = []
-    while len(removed_pieces_idx) != nb_piece_to_choose:
+    removed_pieces_idx = set()
+    it_max = nb_piece_to_choose * 5
+    it = 0
+    while len(removed_pieces_idx) != nb_piece_to_choose and it < it_max:
         idx_list = [i for i in range(0, e.board_size * e.board_size)]
         idx = np.random.choice(idx_list, p=probabilities)
         if piece_type(solution[idx]) != INNER:
+            it += 1
             continue
-        removed_pieces_idx.append(idx)
-        del idx_to_nb_conflict[idx]
-
+        if idx not in removed_pieces_idx:
+            removed_pieces_idx.add(idx)
+            del idx_to_nb_conflict[idx]
+        it += 1
+    removed_pieces_idx = list(removed_pieces_idx)
     # Remove the selected pieces
     removed_pieces = []
     for idx in removed_pieces_idx:

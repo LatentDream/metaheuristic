@@ -452,7 +452,7 @@ def get_heuristic_solution(e: EternityPuzzle):
             solution = [tuple(sublst) for sublst in solution]
 
     else:
-        solution = solve_heuristic.solve_heuristic(e)[0]
+        solution = solve_heuristic(e)[0]
         with open(f"heuristic_solution_{e.board_size}.json", "w") as f:
             json.dump(solution, f)
 
