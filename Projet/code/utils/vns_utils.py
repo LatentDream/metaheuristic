@@ -9,10 +9,6 @@ import time
 
 
 
-
-
-
-
 def prioritise_neighborhhod(e: EternityPuzzle, i, j, sigma, inverted, debug=False):
      #? Generate Gaussian filter 
     sigma=0.5
@@ -57,3 +53,39 @@ def prioritise_neighborhhod(e: EternityPuzzle, i, j, sigma, inverted, debug=Fals
         plt.close()
 
     return neighborhood
+
+
+def swap(e, solution, k, debug=False):
+    return gloton_place_removed_pieces(*choose(e, solution, k, nb_piece_to_choose=2, debug=debug))
+
+
+def rotate(e, solution, k, debug=False):
+    return gloton_place_removed_pieces(*choose(e, solution, k, nb_piece_to_choose=1, debug=debug))
+
+
+def choose(e: EternityPuzzle, solution, probabilities, nb_piece_to_choose: int=2, debug: bool=False):
+
+    solution = deepcopy(solution) # To make sure we are not affecting the input solution
+
+    # Remove k pieces with the most conflict
+    conflict_position, idx_to_nb_conflict = get_conflict_positions(e, solution, return_nb_conflict=True)
+
+    # Sample the distribution
+    removed_pieces_idx = []
+    while len(removed_pieces_idx) != nb_piece_to_choose:
+        idx_list = [i for i in range(0, e.board_size * e.board_size)]
+        idx = np.random.choice(idx_list, p=probabilities)
+        if piece_type(solution[idx]) != INNER:
+            continue
+        removed_pieces_idx.append(idx)
+        del idx_to_nb_conflict[idx]
+
+    # Remove the selected pieces
+    removed_pieces = []
+    for idx in removed_pieces_idx:
+        removed_pieces.append(solution[idx])
+        solution[idx] = (BLACK, BLACK, BLACK, BLACK) # Set hole to black; If their is a problem, we'll be able to see it.
+
+    # Return all the paramter for the rebuild function
+    return e, solution, removed_pieces, removed_pieces_idx, debug
+

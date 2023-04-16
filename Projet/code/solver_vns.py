@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from typing import Dict, List
-from utils.vns_utils import prioritise_neighborhhod
+from utils.vns_utils import prioritise_neighborhhod, swap
 from utils.utils import *
 from tqdm import tqdm
 import solver_heuristic_layer
@@ -23,7 +23,7 @@ def solve_vns(e: EternityPuzzle):
 
     random.seed(1998)
 
-    select_neighborhood(e, debug=True)
+    select_random_neighborhood(e, debug=True)
     raise Exception("END PROG")
 
 
@@ -43,8 +43,7 @@ def multi_start_vns(e: EternityPuzzle, initial_solution, search_time=30, info=Fa
 
     if info: print(f"  [INFO] Solving inner puzzle ...")
 
-    solution = copy.deepcopy(initial_solution)
-    best_solution = copy.deepcopy(initial_solution)
+    solution = vnd(initial_solution)
 
     # VNS parameters
     p = 0
@@ -61,7 +60,7 @@ def multi_start_vns(e: EternityPuzzle, initial_solution, search_time=30, info=Fa
             while iteration_number < ITER_MAX and not stop:
                 new_solution == copy.deepcopy(solution)
                 for _ in range(0, p + 2):
-                    k = select_neighborhood(e)
+                    k = select_random_neighborhood(e)
                     new_solution = shake(new_solution, k)
                 optimised_new_solution = vnd(new_solution)
                 if e.get_total_n_conflict(optimised_new_solution) < e.get_total_n_conflict(solution):
@@ -79,23 +78,27 @@ def multi_start_vns(e: EternityPuzzle, initial_solution, search_time=30, info=Fa
 
 
 
-def vnd(solution):
-    raise NotImplementedError()       
+def vnd(e: EternityPuzzle, solution, swap_per_iter=50, nb_neigborhood=10, debug=False):
 
+    # Start from the border and go to the to the center slowly
+    for _ in range(0, nb_neigborhood):
+        # Select a neigborhood
+        k = np.ones(e.board_size, e.board_size) # Todo
+        # Local swap on that neigborhood
+        for _ in range(0, swap_per_iter):
+            solution = swap(e, solution, k, debug=debug) # Two swap
+            solution = swap(e, solution, k, nb_piece_to_swap=1, debug=debug) # Rotate a piece
+
+    return solution
 
     
-def select_neighborhood(e: EternityPuzzle, debug=False):
-    
-    kernel_size = e.board_size
-    i, j = int(np.random.uniform(0, kernel_size)), int(np.random.uniform(0, kernel_size))
-    i, j = 8,7
-    print(f"{i}: {j}" )
-    neighborhood = prioritise_neighborhhod(e, i, j, sigma=1, inverted=False, debug=True)
-
+def select_random_neighborhood(e: EternityPuzzle, debug=False):
+    i, j = int(np.random.uniform(0, e.board_size)), int(np.random.uniform(0, e.board_size))
+    neighborhood = prioritise_neighborhhod(e, i, j, sigma=1, inverted=False, debug=False)
 
     return neighborhood
 
 
-
 def shake(solution, k):
+    """ Swap some random piece to destroy a bit the solution """
     raise NotImplementedError()

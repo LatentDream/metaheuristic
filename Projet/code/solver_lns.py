@@ -24,7 +24,7 @@ def solve_lns(e: EternityPuzzle):
 
     #? Option
     tabu_queue_size=10
-    lns_search_time = 5 * MINUTE
+    lns_search_time = 2 * MINUTE
     neighborhood_size = 5
     allow_adjacent = True
 
@@ -40,6 +40,7 @@ def solve_lns(e: EternityPuzzle):
 
     random.seed(1998)
     
+    print("  [INFO] Solving border ...")
     # initial_solution, nb_conflict = genetic_algorithm_border(e, num_generations=num_generations, no_progress_generations=no_progress_generations, elite_size=elite_size, tournament_size=tournament_size, tournament_accepted=tournament_accepted, pop_size=pop_size, time_limit=border_time, debug_visualization=debug)
     initial_solution, nb_conflict = solver_heuristic_layer.solve_heuristic(e)
     print("  [INFO] Border final cost : {}".format(nb_conflict))
@@ -93,7 +94,7 @@ def lns(e: EternityPuzzle, solution, search_time=30, neighborhood_size=5, allow_
 
 
 def local_swap(e, solution):
-    return local_search_rebuild(*destroy(e, solution, neighborhood_size=4, allow_adjacent=True))
+    return gloton_place_removed_pieces(*destroy(e, solution, neighborhood_size=4, allow_adjacent=True))
 
 
 def destroy(e: EternityPuzzle, solution, neighborhood_size: int=4, tabu_idx: List=None, allow_adjacent: bool=False, debug_visualization: bool=False):
@@ -161,50 +162,6 @@ def rebuild(e: EternityPuzzle, destroyed_solution, removed_pieces, removed_piece
     return destroyed_solution
 
 
-def local_search_rebuild(e: EternityPuzzle, destroyed_solution, removed_pieces, holes_idx, debug_visualization=False):
-    """ O(len(removed_pieces)!) """
-
-    assert len(removed_pieces) == len(holes_idx)
-
-    if len(holes_idx) == 0:
-        return destroyed_solution
-
-    i = 0
-    solution_found = []
-    while i < len(holes_idx):
-        # Try to fill the hole
-        hole_idx = holes_idx[i]
-        for j, removed_piece in enumerate(removed_pieces):
-            best_fit, number_of_conflit = find_best_fit(e, destroyed_solution, hole_idx, removed_piece) 
-
-            # Copy Args
-            rebuild_solution = copy.deepcopy(destroyed_solution)
-            rebuild_solution[hole_idx] = best_fit
-            rebuild_removed_pieces = copy.deepcopy(removed_pieces)
-            del rebuild_removed_pieces[j]
-            rebuild_holes_idx = copy.deepcopy(holes_idx)
-            del rebuild_holes_idx[i]
-
-            # Fill next hole
-            rebuild_solution = local_search_rebuild(e, rebuild_solution, rebuild_removed_pieces, rebuild_holes_idx)
-            solution_found.append(rebuild_solution)
-
-        i += 1
-
-    sorted_solution = sorted([(solution, e.get_total_n_conflict(solution)) for solution in solution_found], key=lambda x: x[1])
-    best_solution = sorted_solution[0][0]
-
-    return best_solution
-
-
-
-def find_best_fit(e: EternityPuzzle, solution, idx, piece):
-    piece_best_fit = sorted([(rotated_piece, get_number_conflict(e, solution, idx, rotated_piece)) for rotated_piece in e.generate_rotation(piece)], key=lambda x: x[1])
-
-    return piece_best_fit[0]
-
-
-
 def get_probability_of_removing_piece(e: EternityPuzzle, solution, idx_to_nb_conflict: Dict, priotize_adjacent=False, last_removed_piece_idx=None):
     """ Find the probability of removing a piece base on the number of conflicts """
     if priotize_adjacent:
@@ -220,34 +177,6 @@ def get_probability_of_removing_piece(e: EternityPuzzle, solution, idx_to_nb_con
     probabilities = np.array([nb_conflict for _, nb_conflict in pieces_with_most_conflict])
     probabilities = probabilities / np.sum(probabilities)
     return idx_conflic, probabilities
-
-
-
-def get_adjacent_idx(e: EternityPuzzle, idx):
-    i , j = idx % e.board_size, idx // e.board_size
-    idx_south =  e.board_size * (j - 1) + i
-    idx_north =  e.board_size * (j + 1) + i
-    idx_east =   e.board_size * j + (i - 1)
-    idx_west =   e.board_size * j + (i + 1)
-
-    return idx_north, idx_east, idx_south, idx_west
-
-
-def get_number_conflict(e: EternityPuzzle, solution, idx, piece):
-    """ Swipe with side not supported """
-    idx_north, idx_east, idx_south, idx_west = get_adjacent_idx(e, idx)
-    nb_conflict = 0
-    if piece[WEST]  != solution[idx_west][EAST] and solution[idx_west][EAST] != BLACK:
-        nb_conflict += 1
-    if piece[NORTH] != solution[idx_north][SOUTH] and solution[idx_north][SOUTH] != BLACK:
-        nb_conflict += 1
-    if piece[EAST]  != solution[idx_east][WEST] and solution[idx_east][WEST] != BLACK:
-        nb_conflict += 1
-    if piece[SOUTH] != solution[idx_south][NORTH] and solution[idx_south][NORTH] != BLACK:
-        nb_conflict += 1
-
-    return nb_conflict
-
 
 
 def is_adjacent(e: EternityPuzzle, idx: int, puzzle_pieces_idx: List[int]):

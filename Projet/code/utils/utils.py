@@ -1,3 +1,4 @@
+import copy
 from eternity_puzzle import EternityPuzzle
 import random
 import numpy as np
@@ -263,3 +264,70 @@ def list_to_grid(e: EternityPuzzle, liste):
     for i in range(e.board_size):
         grid.append(liste[i * e.board_size : i * e.board_size + e.board_size])
     return grid
+
+#? """ LNS AND VNS Utils """
+
+
+def find_best_fit(e: EternityPuzzle, solution, idx, piece):
+    piece_best_fit = sorted([(rotated_piece, get_number_conflict(e, solution, idx, rotated_piece)) for rotated_piece in e.generate_rotation(piece)], key=lambda x: x[1])
+    return piece_best_fit[0]
+
+
+def get_number_conflict(e: EternityPuzzle, solution, idx, piece):
+    """ Swipe with side not supported """
+    idx_north, idx_east, idx_south, idx_west = get_adjacent_idx(e, idx)
+    nb_conflict = 0
+    if piece[WEST]  != solution[idx_west][EAST] and solution[idx_west][EAST] != BLACK:
+        nb_conflict += 1
+    if piece[NORTH] != solution[idx_north][SOUTH] and solution[idx_north][SOUTH] != BLACK:
+        nb_conflict += 1
+    if piece[EAST]  != solution[idx_east][WEST] and solution[idx_east][WEST] != BLACK:
+        nb_conflict += 1
+    if piece[SOUTH] != solution[idx_south][NORTH] and solution[idx_south][NORTH] != BLACK:
+        nb_conflict += 1
+    return nb_conflict
+
+
+def get_adjacent_idx(e: EternityPuzzle, idx):
+    i , j = idx % e.board_size, idx // e.board_size
+    idx_south =  e.board_size * (j - 1) + i
+    idx_north =  e.board_size * (j + 1) + i
+    idx_east =   e.board_size * j + (i - 1)
+    idx_west =   e.board_size * j + (i + 1)
+    return idx_north, idx_east, idx_south, idx_west
+
+
+def gloton_place_removed_pieces(e: EternityPuzzle, destroyed_solution, removed_pieces, holes_idx, debug_visualization=False):
+    """ O(len(removed_pieces)!) """
+
+    assert len(removed_pieces) == len(holes_idx)
+
+    if len(holes_idx) == 0:
+        return destroyed_solution
+
+    i = 0
+    solution_found = []
+    while i < len(holes_idx):
+        # Try to fill the hole
+        hole_idx = holes_idx[i]
+        for j, removed_piece in enumerate(removed_pieces):
+            best_fit, number_of_conflit = find_best_fit(e, destroyed_solution, hole_idx, removed_piece) 
+
+            # Copy Args
+            rebuild_solution = copy.deepcopy(destroyed_solution)
+            rebuild_solution[hole_idx] = best_fit
+            rebuild_removed_pieces = copy.deepcopy(removed_pieces)
+            del rebuild_removed_pieces[j]
+            rebuild_holes_idx = copy.deepcopy(holes_idx)
+            del rebuild_holes_idx[i]
+
+            # Fill next hole
+            rebuild_solution = gloton_place_removed_pieces(e, rebuild_solution, rebuild_removed_pieces, rebuild_holes_idx)
+            solution_found.append(rebuild_solution)
+
+        i += 1
+
+    sorted_solution = sorted([(solution, e.get_total_n_conflict(solution)) for solution in solution_found], key=lambda x: x[1])
+    best_solution = sorted_solution[0][0]
+
+    return best_solution
