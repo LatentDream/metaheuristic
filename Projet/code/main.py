@@ -7,6 +7,7 @@ import solver_local_search
 import solver_advanced
 import solver_genetic
 import solver_lns
+import solver_vns
 import solver_heuristic_layer
 
 
@@ -57,8 +58,11 @@ if __name__ == "__main__":
         # Genetic Agent
         solution, n_conflict = solver_genetic.solve_advanced(e)
     elif args.agent == "lns":
-        # Tabu Agent
+        # LNS Tabu Agent
         solution, n_conflict = solver_lns.solve_lns(e)
+    elif args.agent == "vns":
+        # VNS Agent
+        solution, n_conflict = solver_vns.solve_vns(e)
     else:
         raise Exception("This agent does not exist")
     solving_time = round((time.time() - start_time) / 60, 2)

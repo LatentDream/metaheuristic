@@ -24,7 +24,7 @@ def solve_lns(e: EternityPuzzle):
 
     #? Option
     tabu_queue_size=10
-    lns_search_time = 5*60
+    lns_search_time = 5 * MINUTE
     neighborhood_size = 5
     allow_adjacent = True
 

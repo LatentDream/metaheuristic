@@ -13,6 +13,8 @@ SOUTH = 1
 WEST = 2
 EAST = 3
 
+MINUTE = 60
+
 CORNER = "corner"
 EDGE = "edge"
 INNER = "inner"
