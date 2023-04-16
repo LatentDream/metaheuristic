@@ -4,6 +4,7 @@ import time
 import random
 
 from tqdm import tqdm
+from solver_heuristic import solve_heuristic
 from utils.utils import *
 from math import inf
 from typing import Dict
@@ -357,11 +358,8 @@ def genetic_algorithm_border(
     debug_visualization=False
 ):
     start_time = time.time()
-<<<<<<< HEAD
     tic = start_time
     best_fitness_no_improvement = -inf
-=======
->>>>>>> origin/main
     best_fitness = -inf
     improvement_timer = 1
     time_over = False
@@ -377,21 +375,10 @@ def genetic_algorithm_border(
                 population, key=lambda s: fitness_border(e, s), reverse=True
             )
 
-<<<<<<< HEAD
             # Iterate over the generations
             for _ in range(num_generations):
                 # The parents selected for the next generation
                 parents = population[: pop_size // 2]
-=======
-            # Update the best solution found so far
-            fittest_solution = population[0]
-            fittest_score = fitness_border(e, fittest_solution)
-            if fittest_score > best_fitness:
-                best_fitness = fittest_score
-                best_solution = fittest_solution.copy()
-                print("Border cost : ", -best_fitness, end="\r")
-                improvement_timer = 0
->>>>>>> origin/main
 
                 # The elite is kept for the next generation
                 elite = population[:elite_size]
@@ -465,7 +452,7 @@ def get_heuristic_solution(e: EternityPuzzle):
             solution = [tuple(sublst) for sublst in solution]
 
     else:
-        solution = solver_heuristic.solve_heuristic(e)[0]
+        solution = solve_heuristic.solve_heuristic(e)[0]
         with open(f"heuristic_solution_{e.board_size}.json", "w") as f:
             json.dump(solution, f)
 
