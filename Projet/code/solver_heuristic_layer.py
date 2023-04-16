@@ -1,8 +1,5 @@
-import numpy as np
 import math
-import copy
 from utils.utils import *
-import itertools
 from copy import deepcopy
 
 GRAY = 0
@@ -27,7 +24,6 @@ def solve_heuristic(e: EternityPuzzle):
     corners = [piece for piece in e.piece_list if piece_type(piece) == "corner"]
     edges = [piece for piece in e.piece_list if piece_type(piece) == "edge"]
     inner = [piece for piece in e.piece_list if piece_type(piece) == "inner"]
-    color_count = {color: 0 for color in e.build_color_dict()}
 
     edge_idx = [
         i
@@ -39,17 +35,6 @@ def solve_heuristic(e: EternityPuzzle):
             or (i + 1) % e.board_size == 0
         )
         and (i != e.n_piece - e.board_size and i != e.board_size - 1)
-    ]
-
-    inner_idx = [
-        i
-        for i in range(e.n_piece)
-        if not (
-            i <= e.board_size - 1
-            or i % e.board_size == 0
-            or e.n_piece - i <= e.board_size
-            or (i + 1) % e.board_size == 0
-        )
     ]
 
     (
@@ -74,7 +59,6 @@ def solve_heuristic(e: EternityPuzzle):
         inner = [piece for piece in e.piece_list if piece_type(piece) == "inner"]
         color_count = {color: 0 for color in e.build_color_dict()}
 
-        # set edges
         for position in edge_idx:
             best_cost = math.inf
 
@@ -88,46 +72,45 @@ def solve_heuristic(e: EternityPuzzle):
                         best_piece = piece
                         best_oriented_piece = rotated_piece
                         solution[position] = best_oriented_piece
-
             if len(edges) > 0:
                 edges.remove(best_piece)
 
-        # set inner pieces
-        for position in inner_idx:
-            best_cost = math.inf
-            for piece in inner:
-                for rotated_piece in e.generate_rotation(piece):
-                    tested_solution = solution.copy()
-                    tested_solution[position] = rotated_piece
-                    cost = e.get_total_n_conflict(tested_solution)
+        for layer in range(1, ((e.board_size) // 2)):
+            layer_idx = get_layer_positions(e, layer)
+            for position in layer_idx:
+                best_cost = math.inf
+                for piece in inner:
+                    for rotated_piece in e.generate_rotation(piece):
+                        tested_solution = solution.copy()
+                        tested_solution[position] = rotated_piece
+                        cost = e.get_total_n_conflict(tested_solution)
 
-                    if cost < best_cost:
-                        best_cost = cost
-                        best_piece = piece
-                        best_oriented_piece = rotated_piece
-                        solution[position] = best_oriented_piece
-                        color_count = update_color_counter(
-                            color_count, solution[position]
-                        )
+                        if cost < best_cost:
+                            best_cost = cost
+                            best_piece = piece
+                            best_oriented_piece = rotated_piece
+                            solution[position] = best_oriented_piece
+                            color_count = update_color_counter(
+                                color_count, solution[position]
+                            )
 
-                    elif cost == best_cost and evaluate_color_counter(
-                        update_color_counter(color_count, piece)
-                    ) < evaluate_color_counter(color_count):
-                        best_cost = cost
-                        best_piece = piece
-                        best_oriented_piece = rotated_piece
-                        solution[position] = best_oriented_piece
-                        color_count = update_color_counter(
-                            color_count, solution[position]
-                        )
-                    # print(
-                    #     evaluate_color_counter(update_color_counter(color_count, piece))
-                    #     -10
-                    #     > evaluate_color_counter(color_count)
-                    # )
+                        elif cost == best_cost and evaluate_color_counter(
+                            update_color_counter(color_count, piece)
+                        ) -10> evaluate_color_counter(color_count):
+                            best_cost = cost
+                            best_piece = piece
+                            best_oriented_piece = rotated_piece
+                            solution[position] = best_oriented_piece
+                            color_count = update_color_counter(
+                                color_count, solution[position]
+                            )
 
-            if len(inner) > 0:
-                inner.remove(best_piece)
+                        # print(evaluate_color_counter(
+                        #     update_color_counter(color_count, piece)) -10
+                        #     > evaluate_color_counter(color_count)
+                        # )
+                if len(inner) > 0:
+                    inner.remove(best_piece)
 
         cost_geometry = e.get_total_n_conflict(solution)
         if cost_geometry < best_cost_geometry:
@@ -136,6 +119,28 @@ def solve_heuristic(e: EternityPuzzle):
 
     # Return the best solution of the best geometry
     return (best_solution, best_cost_geometry)
+
+
+# Return all the indices of a given layer in a solution (border is layer 0)
+def get_layer_positions(e: EternityPuzzle, layer):
+    b = e.board_size
+
+    positions = []
+    for i in range(b * layer + layer, b * layer + b - layer):
+        positions.append(i)
+
+    for i in range(b * layer + layer, b * (b - layer) + layer, b):
+        positions.append(i)
+
+    for i in range(b * (b - layer - 1) + layer, b * (b - layer - 1) + b - layer):
+        positions.append(i)
+
+    for i in range(b * layer + b - 1 - layer, b * (b - layer) + b - 1 - layer, b):
+        positions.append(i)
+
+    positions = list(set(positions))
+    positions.sort()
+    return positions
 
 
 def generate_corner_geometries(e: EternityPuzzle, solution):

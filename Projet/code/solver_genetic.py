@@ -10,7 +10,7 @@ import random
 import numpy as np
 import networkx as nx
 from math import inf
-import solver_heuristic
+import solver_heuristic_layer
 import solver_local_search
 import os
 import json
@@ -49,7 +49,7 @@ def solve_advanced(e: EternityPuzzle):
     tournament_accepted = 5
     num_generations = 100
     no_progress_generations = 10
-    elite_size = 0
+    elite_size = 1
 
     border, border_cost = genetic_algorithm_border(
         e,
@@ -74,7 +74,7 @@ def solve_advanced(e: EternityPuzzle):
     max_time_local_search = 10
     num_generations = 1000
     no_progress_generations = 10
-    elite_size = 0
+    elite_size = 1
 
     return genetic_algorithm(
         e,
@@ -169,7 +169,7 @@ def genetic_algorithm(
                     best_fitness = improved_fitness
                     best_solution = deepcopy(improved_solution)
                     best_cost = e.get_total_n_conflict(best_solution)
-                    print("BEST SOLUTION FOUND : Cost {best_cost}", end="\r")
+                    print("BEST SOLUTION FOUND : Cost {}".format(best_cost), end="\r")
 
                     for instance, length in file_names.items():
                         if length == len(best_solution):
@@ -423,7 +423,7 @@ def genetic_algorithm_border(
             if fittest_score > best_fitness:
                 best_fitness = fittest_score
                 best_solution = fittest_solution.copy()
-                print("New border cost : ", -best_fitness, end="\r")
+                print("Border cost : ", -best_fitness, end="\r")
                 improvement_timer = 0
 
             else:
@@ -447,7 +447,7 @@ def get_heuristic_solution(e: EternityPuzzle):
             solution = [tuple(sublst) for sublst in solution]
 
     else:
-        solution = solver_heuristic.solve_heuristic(e)[0]
+        solution = solver_heuristic_layer.solve_heuristic(e)[0]
         with open("heuristic_solution.json", "w") as f:
             json.dump(solution, f)
 

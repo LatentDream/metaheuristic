@@ -233,9 +233,6 @@ def generate_random_inner_solution(e: EternityPuzzle, border):
 
     return solution
 
-
-# ! Will be removed :
-
 # Function to flatten a grid into a list
 def grid_to_list(grid):
     return [piece for row in grid for piece in row]
