@@ -2,6 +2,9 @@ import numpy as np
 from copy import deepcopy
 import time
 import random
+
+from tqdm import tqdm
+from solver_heuristic import solve_heuristic
 from utils.utils import *
 from math import inf
 from typing import Dict
@@ -17,16 +20,6 @@ import json
 
 
 file_names = {"A": 16, "B": 49, "C": 64, "D": 81, "E": 100, "complet": 256}
-
-GRAY = 0
-BLACK = 23
-RED = 24
-WHITE = 25
-
-NORTH = 0
-SOUTH = 1
-WEST = 2
-EAST = 3
 
 
 def solve_advanced(e: EternityPuzzle):
@@ -227,6 +220,7 @@ def generate_population(e: EternityPuzzle, pop_size, elite_size, border=None):
             population.append(border)
         for _ in range(pop_size):
             population.append(generate_random_inner_solution(e, border))
+        
 
     else:
         for _ in range(elite_size):
@@ -234,7 +228,6 @@ def generate_population(e: EternityPuzzle, pop_size, elite_size, border=None):
             population.append(solution_heuristic)
         for _ in range(pop_size):
             population.append(generate_random_solution(e))
-
     return population
 
 
@@ -362,93 +355,105 @@ def genetic_algorithm_border(
     tournament_accepted,
     pop_size,
     time_limit,
+    debug_visualization=False
 ):
     start_time = time.time()
+    tic = start_time
+    best_fitness_no_improvement = -inf
     best_fitness = -inf
     improvement_timer = 1
     time_over = False
 
-    while not time_over:
-        # Generate the initial population
-        population = generate_population(e, pop_size, elite_size)
-        population = sorted(
-            population, key=lambda s: fitness_border(e, s), reverse=True
-        )
+    print(f"  [INFO] Solving border ...")
+    with tqdm(total=time_limit) as progress_bar:
+    
 
-        # Iterate over the generations
-        for _ in range(num_generations):
-            # The parents selected for the next generation
-            parents = population[: pop_size // 2]
-
-            # The elite is kept for the next generation
-            elite = population[:elite_size]
-
-            # Create the offspring for the next generation
-            offspring = []
-            for j in range(len(parents) // 2):
-                parent1 = parents[j]
-                parent2 = parents[len(parents) - j - 1]
-
-                child1 = border_crossover(
-                    e,
-                    parent1,
-                )
-                child2 = border_crossover(
-                    e,
-                    parent2,
-                )
-
-                offspring.append(child1)
-                offspring.append(child2)
-
-            # Select the survivors for the next generation : we keep the same population size
-            population = (
-                selection_border(
-                    e,
-                    parents + offspring,
-                    pop_size,
-                    tournament_size,
-                    tournament_accepted,
-                )
-                + elite
-            )
-
+        while not time_over:
+            # Generate the initial population
+            population = generate_population(e, pop_size, elite_size)
             population = sorted(
                 population, key=lambda s: fitness_border(e, s), reverse=True
             )
 
-            # Update the best solution found so far
-            fittest_solution = population[0]
-            fittest_score = fitness_border(e, fittest_solution)
-            if fittest_score > best_fitness:
-                best_fitness = fittest_score
-                best_solution = fittest_solution.copy()
-                print("Border cost : ", -best_fitness, end="\r")
-                improvement_timer = 0
+            # Iterate over the generations
+            for _ in range(num_generations):
+                # The parents selected for the next generation
+                parents = population[: pop_size // 2]
 
-            else:
-                improvement_timer += 1
-                # If no improvement is made during too many generations, restart on a new population
-                if improvement_timer > no_progress_generations:
+                # The elite is kept for the next generation
+                elite = population[:elite_size]
+
+                # Create the offspring for the next generation
+                offspring = []
+                for j in range(len(parents) // 2):
+                    parent1 = parents[j]
+                    parent2 = parents[len(parents) - j - 1]
+
+                    child1 = border_crossover(
+                        e,
+                        parent1,
+                    )
+                    child2 = border_crossover(
+                        e,
+                        parent2,
+                    )
+
+                    offspring.append(child1)
+                    offspring.append(child2)
+
+                # Select the survivors for the next generation : we keep the same population size
+                population = (
+                    selection_border(
+                        e,
+                        parents + offspring,
+                        pop_size,
+                        tournament_size,
+                        tournament_accepted,
+                    )
+                    + elite
+                )
+
+                population = sorted(
+                    population, key=lambda s: fitness_border(e, s), reverse=True
+                )
+
+                # Update the best solution found so far
+                fittest_solution = population[0]
+                fittest_score = fitness_border(e, fittest_solution)
+                # print(fittest_score)
+                if fittest_score > best_fitness:
+                    best_fitness = fittest_score
+                    best_solution = fittest_solution.copy()
+                    if debug_visualization:
+                        visualize(e, best_solution, "debug/debug")
                     improvement_timer = 0
-                    break
 
-            if time.time() - start_time > time_limit:
-                time_over = True
-                break
+                else:
+                    improvement_timer += 1
+                    # If no improvement is made during too many generations, restart on a new population
+                    if improvement_timer > no_progress_generations:
+                        improvement_timer = 0
+                        break
+
+                if (tac := time.time()) - start_time < time_limit:
+                    progress_bar.update(tac - tic)
+                    tic = tac
+                else:
+                    time_over = True
+                    break
 
     return best_solution, -best_fitness
 
 
 def get_heuristic_solution(e: EternityPuzzle):
-    if os.path.exists("heuristic_solution.json"):
-        with open("heuristic_solution.json", "r") as f:
+    if os.path.exists(f"heuristic_solution_{e.board_size}.json"):
+        with open(f"heuristic_solution_{e.board_size}.json", "r") as f:
             solution = json.load(f)
             solution = [tuple(sublst) for sublst in solution]
 
     else:
-        solution = solver_heuristic_layer.solve_heuristic(e)[0]
-        with open("heuristic_solution.json", "w") as f:
+        solution = solve_heuristic.solve_heuristic(e)[0]
+        with open(f"heuristic_solution_{e.board_size}.json", "w") as f:
             json.dump(solution, f)
 
     return solution

@@ -2,32 +2,37 @@ from eternity_puzzle import EternityPuzzle
 import random
 import numpy as np
 from copy import deepcopy
-
+from matplotlib import pyplot
 
 GRAY = 0
 BLACK = 23
 RED = 24
 WHITE = 25
-
 NORTH = 0
 SOUTH = 1
 WEST = 2
 EAST = 3
 
+CORNER = "corner"
+EDGE = "edge"
+INNER = "inner"
 
 # Save a visualisation
 def visualize(e: EternityPuzzle, solution, name="visualisation"):
     e.display_solution(solution, name)
+    pyplot.close() # Free memory if a lot of write visualize is done
 
 
 def piece_type(piece):
     count_gray = piece.count(GRAY)
-    return "corner" if count_gray == 2 else "edge" if count_gray == 1 else "inner"
+    return CORNER if count_gray == 2 else EDGE if count_gray == 1 else INNER
 
 
 # Return a list of the positions of the pieces in conflict
-def get_conflict_positions(e, solution):
+def get_conflict_positions(e, solution, return_nb_conflict=False):
     positions = []
+
+    n_conflit = {i: 0 for i in range(e.board_size * e.board_size)}
 
     for j in range(e.board_size):
         for i in range(e.board_size):
@@ -37,25 +42,37 @@ def get_conflict_positions(e, solution):
 
             if i > 0 and solution[k][WEST] != solution[k_east][EAST]:
                 positions.append(k)
+                n_conflit[k] += 1
                 positions.append(k_east)
+                n_conflit[k_east] += 1
 
             if i == 0 and solution[k][WEST] != GRAY:
                 positions.append(k)
+                n_conflit[k] += 1
 
             if i == e.board_size - 1 and solution[k][EAST] != GRAY:
                 positions.append(k)
+                n_conflit[k] += 1
 
             if j > 0 and solution[k][SOUTH] != solution[k_south][NORTH]:
                 positions.append(k)
+                n_conflit[k] += 1
                 positions.append(k_south)
+                n_conflit[k_south] += 1
 
             if j == 0 and solution[k][SOUTH] != GRAY:
                 positions.append(k)
+                n_conflit[k] += 1
 
             if j == e.board_size - 1 and solution[k][NORTH] != GRAY:
                 positions.append(k)
+                n_conflit[k] += 1
 
     positions = list(set(positions))
+    
+    if return_nb_conflict:
+        return positions, n_conflit
+
     return positions
 
 
