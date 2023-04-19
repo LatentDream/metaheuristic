@@ -20,10 +20,11 @@ CORNER = "corner"
 EDGE = "edge"
 INNER = "inner"
 
+
 # Save a visualisation
 def visualize(e: EternityPuzzle, solution, name="visualisation"):
     e.display_solution(solution, name)
-    pyplot.close() # Free memory if a lot of write visualize is done
+    pyplot.close()  # Free memory if a lot of write visualize is done
 
 
 def piece_type(piece):
@@ -72,7 +73,7 @@ def get_conflict_positions(e, solution, return_nb_conflict=False):
                 n_conflit[k] += 1
 
     positions = list(set(positions))
-    
+
     if return_nb_conflict:
         return positions, n_conflit
 
@@ -249,9 +250,10 @@ def generate_random_inner_solution(e: EternityPuzzle, border):
     random.shuffle(inner_pieces)
 
     for i, position in enumerate(inner_ids):
-        solution[position] = inner_pieces[i]
+        solution[position] = random.choice(e.generate_rotation(inner_pieces[i]))
 
     return solution
+
 
 # Function to flatten a grid into a list
 def grid_to_list(grid):
@@ -265,40 +267,59 @@ def list_to_grid(e: EternityPuzzle, liste):
         grid.append(liste[i * e.board_size : i * e.board_size + e.board_size])
     return grid
 
-#? """ LNS AND VNS Utils """
+
+# ? """ LNS AND VNS Utils """
 
 
 def find_best_fit(e: EternityPuzzle, solution, idx, piece):
-    piece_best_fit = sorted([(rotated_piece, get_number_conflict(e, solution, idx, rotated_piece)) for rotated_piece in e.generate_rotation(piece)], key=lambda x: x[1])
+    piece_best_fit = sorted(
+        [
+            (rotated_piece, get_number_conflict(e, solution, idx, rotated_piece))
+            for rotated_piece in e.generate_rotation(piece)
+        ],
+        key=lambda x: x[1],
+    )
     return piece_best_fit[0]
 
 
 def get_number_conflict(e: EternityPuzzle, solution, idx, piece):
-    """ Swipe with side not supported """
+    """Swipe with side not supported"""
     idx_north, idx_east, idx_south, idx_west = get_adjacent_idx(e, idx)
     nb_conflict = 0
-    if piece[WEST]  != solution[idx_west][EAST] and solution[idx_west][EAST] != BLACK:
+    if piece[WEST] != solution[idx_west][EAST] and solution[idx_west][EAST] != BLACK:
         nb_conflict += 1
-    if piece[NORTH] != solution[idx_north][SOUTH] and solution[idx_north][SOUTH] != BLACK:
+    if (
+        piece[NORTH] != solution[idx_north][SOUTH]
+        and solution[idx_north][SOUTH] != BLACK
+    ):
         nb_conflict += 1
-    if piece[EAST]  != solution[idx_east][WEST] and solution[idx_east][WEST] != BLACK:
+    if piece[EAST] != solution[idx_east][WEST] and solution[idx_east][WEST] != BLACK:
         nb_conflict += 1
-    if piece[SOUTH] != solution[idx_south][NORTH] and solution[idx_south][NORTH] != BLACK:
+    if (
+        piece[SOUTH] != solution[idx_south][NORTH]
+        and solution[idx_south][NORTH] != BLACK
+    ):
         nb_conflict += 1
     return nb_conflict
 
 
 def get_adjacent_idx(e: EternityPuzzle, idx):
-    i , j = idx % e.board_size, idx // e.board_size
-    idx_south =  e.board_size * (j - 1) + i
-    idx_north =  e.board_size * (j + 1) + i
-    idx_east =   e.board_size * j + (i - 1)
-    idx_west =   e.board_size * j + (i + 1)
+    i, j = idx % e.board_size, idx // e.board_size
+    idx_south = e.board_size * (j - 1) + i
+    idx_north = e.board_size * (j + 1) + i
+    idx_east = e.board_size * j + (i - 1)
+    idx_west = e.board_size * j + (i + 1)
     return idx_north, idx_east, idx_south, idx_west
 
 
-def gloton_place_removed_pieces(e: EternityPuzzle, destroyed_solution, removed_pieces, holes_idx, debug_visualization=False):
-    """ O(len(removed_pieces)!) """
+def gloton_place_removed_pieces(
+    e: EternityPuzzle,
+    destroyed_solution,
+    removed_pieces,
+    holes_idx,
+    debug_visualization=False,
+):
+    """O(len(removed_pieces)!)"""
 
     assert len(removed_pieces) == len(holes_idx)
 
@@ -311,7 +332,9 @@ def gloton_place_removed_pieces(e: EternityPuzzle, destroyed_solution, removed_p
         # Try to fill the hole
         hole_idx = holes_idx[i]
         for j, removed_piece in enumerate(removed_pieces):
-            best_fit, number_of_conflit = find_best_fit(e, destroyed_solution, hole_idx, removed_piece) 
+            best_fit, number_of_conflit = find_best_fit(
+                e, destroyed_solution, hole_idx, removed_piece
+            )
 
             # Copy Args
             rebuild_solution = copy.deepcopy(destroyed_solution)
@@ -322,12 +345,17 @@ def gloton_place_removed_pieces(e: EternityPuzzle, destroyed_solution, removed_p
             del rebuild_holes_idx[i]
 
             # Fill next hole
-            rebuild_solution = gloton_place_removed_pieces(e, rebuild_solution, rebuild_removed_pieces, rebuild_holes_idx)
+            rebuild_solution = gloton_place_removed_pieces(
+                e, rebuild_solution, rebuild_removed_pieces, rebuild_holes_idx
+            )
             solution_found.append(rebuild_solution)
 
         i += 1
 
-    sorted_solution = sorted([(solution, e.get_total_n_conflict(solution)) for solution in solution_found], key=lambda x: x[1])
+    sorted_solution = sorted(
+        [(solution, e.get_total_n_conflict(solution)) for solution in solution_found],
+        key=lambda x: x[1],
+    )
     best_solution = sorted_solution[0][0]
 
     return best_solution

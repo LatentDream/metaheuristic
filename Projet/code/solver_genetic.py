@@ -1,22 +1,17 @@
+from utils.utils import *
+from typing import Dict
+import networkx as nx
 import numpy as np
 from copy import deepcopy
 import time
 import random
-
-from tqdm import tqdm
-from solver_heuristic import solve_heuristic
-from utils.utils import *
-from math import inf
-from typing import Dict
-import time
-import random
-import numpy as np
-import networkx as nx
-from math import inf
-import solver_heuristic_layer
-import solver_local_search
 import os
 import json
+from math import inf
+from tqdm import tqdm
+import solver_heuristic
+import solver_heuristic_layer
+import solver_local_search
 
 
 file_names = {"A": 16, "B": 49, "C": 64, "D": 81, "E": 100, "complet": 256}
@@ -29,13 +24,14 @@ def solve_advanced(e: EternityPuzzle):
     :return: a tuple (solution, cost) where solution is a list of the pieces (rotations applied) and
         cost is the cost of the solution
     """
-    if os.path.exists("heuristic_solution.json"):
-        os.remove("heuristic_solution.json")
+
+    if os.path.exists(f"heuristic_solution_{e.board_size}.json"):
+        os.remove(f"heuristic_solution_{e.board_size}.json")
 
     random.seed(1234)
 
     # Solve the border
-    border_time = 60
+    border_time = 1
     pop_size = 20
     mutation_rate = 0
     tournament_size = 10
@@ -58,16 +54,16 @@ def solve_advanced(e: EternityPuzzle):
     visualize(e, border, "Border")
 
     # Solve the inner puzzle
-    time_limit = 20 * 60  # 20 * 60
+    time_limit = 10  # 20 * 60
 
     pop_size = 100
     mutation_rate = 0.01
     tournament_size = 100
     tournament_accepted = 30
-    max_time_local_search = 10
+    max_time_local_search = 3
     num_generations = 1000
     no_progress_generations = 10
-    elite_size = 1
+    elite_size = 0
 
     return genetic_algorithm(
         e,
@@ -220,7 +216,6 @@ def generate_population(e: EternityPuzzle, pop_size, elite_size, border=None):
             population.append(border)
         for _ in range(pop_size):
             population.append(generate_random_inner_solution(e, border))
-        
 
     else:
         for _ in range(elite_size):
@@ -231,9 +226,8 @@ def generate_population(e: EternityPuzzle, pop_size, elite_size, border=None):
     return population
 
 
-# 2-Swap with rotations on conflict pieces
+# 2-Swap with rotations
 def inner_crossover(e: EternityPuzzle, parent):
-    # 2-Swap with random rotations
     child = parent.copy()
 
     inner_idx = [
@@ -253,7 +247,8 @@ def inner_crossover(e: EternityPuzzle, parent):
             ), random.choice(e.generate_rotation(parent[i]))
 
     # 2-Swap with random pieces
-    for i in inner_idx:
+    random.shuffle(inner_idx)
+    for i in inner_idx[: len(inner_idx) // 4]:
         j = random.choice(inner_idx)
         child[i], child[j] = random.choice(
             e.generate_rotation(parent[j])
@@ -355,7 +350,7 @@ def genetic_algorithm_border(
     tournament_accepted,
     pop_size,
     time_limit,
-    debug_visualization=False
+    debug_visualization=False,
 ):
     start_time = time.time()
     tic = start_time
@@ -366,8 +361,6 @@ def genetic_algorithm_border(
 
     print(f"  [INFO] Solving border ...")
     with tqdm(total=time_limit) as progress_bar:
-    
-
         while not time_over:
             # Generate the initial population
             population = generate_population(e, pop_size, elite_size)
@@ -452,7 +445,7 @@ def get_heuristic_solution(e: EternityPuzzle):
             solution = [tuple(sublst) for sublst in solution]
 
     else:
-        solution = solve_heuristic(e)[0]
+        solution = solver_heuristic_layer.solve_heuristic(e)[0]
         with open(f"heuristic_solution_{e.board_size}.json", "w") as f:
             json.dump(solution, f)
 

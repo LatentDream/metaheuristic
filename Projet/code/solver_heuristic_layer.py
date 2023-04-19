@@ -75,7 +75,7 @@ def solve_heuristic(e: EternityPuzzle):
             if len(edges) > 0:
                 edges.remove(best_piece)
 
-        for layer in range(1, ((e.board_size) // 2)):
+        for layer in range(1, ((e.board_size +1) // 2)):
             layer_idx = get_layer_positions(e, layer)
             for position in layer_idx:
                 best_cost = math.inf
