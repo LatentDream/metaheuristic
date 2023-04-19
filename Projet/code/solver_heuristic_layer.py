@@ -50,10 +50,10 @@ def solve_heuristic(e: EternityPuzzle):
     best_cost_geometry = math.inf
     best_solution = None
 
+    i = 0
     # Build the best solution with edges and inner pieces for each geometry
     for geometry in corner_geometries:
         solution = deepcopy(geometry)
-
         corners = [piece for piece in e.piece_list if piece_type(piece) == "corner"]
         edges = [piece for piece in e.piece_list if piece_type(piece) == "edge"]
         inner = [piece for piece in e.piece_list if piece_type(piece) == "inner"]
@@ -75,7 +75,7 @@ def solve_heuristic(e: EternityPuzzle):
             if len(edges) > 0:
                 edges.remove(best_piece)
 
-        for layer in range(1, ((e.board_size +1) // 2)):
+        for layer in range(1, ((e.board_size + 1) // 2)):
             layer_idx = get_layer_positions(e, layer)
             for position in layer_idx:
                 best_cost = math.inf
@@ -96,7 +96,7 @@ def solve_heuristic(e: EternityPuzzle):
 
                         elif cost == best_cost and evaluate_color_counter(
                             update_color_counter(color_count, piece)
-                        ) -10> evaluate_color_counter(color_count):
+                        ) > evaluate_color_counter(color_count):
                             best_cost = cost
                             best_piece = piece
                             best_oriented_piece = rotated_piece
