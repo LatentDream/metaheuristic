@@ -25,8 +25,8 @@ def solve_advanced(e: EternityPuzzle):
         cost is the cost of the solution
     """
 
-    if os.path.exists(f"heuristic_solution_{e.board_size}.json"):
-        os.remove(f"heuristic_solution_{e.board_size}.json")
+    if os.path.exists(f"heuristic_solutions/heuristic_solution_{e.board_size}.json"):
+        os.remove(f"heuristic_solutions/heuristic_solution_{e.board_size}.json")
 
     random.seed(1234)
 
@@ -60,7 +60,7 @@ def solve_advanced(e: EternityPuzzle):
     mutation_rate = 0.01
     tournament_size = 100
     tournament_accepted = 30
-    max_time_local_search = 3
+    max_time_local_search = 0
     num_generations = 1000
     no_progress_generations = 10
     elite_size = 0
@@ -209,6 +209,9 @@ def fitness_border(e: EternityPuzzle, s):
 
 
 def generate_population(e: EternityPuzzle, pop_size, elite_size, border=None):
+    """Population generated randomly
+    When solving the inside of the puzzle, borders of the generated solutions are the same as the one generated
+    """
     population = []
 
     if border != None:
@@ -226,8 +229,10 @@ def generate_population(e: EternityPuzzle, pop_size, elite_size, border=None):
     return population
 
 
-# 2-Swap with rotations
 def inner_crossover(e: EternityPuzzle, parent):
+    """2-swap with rotations
+    * Fi at least one piece involving a conflict a
+    * And"""
     child = parent.copy()
 
     inner_idx = [
@@ -246,13 +251,13 @@ def inner_crossover(e: EternityPuzzle, parent):
                 e.generate_rotation(parent[j])
             ), random.choice(e.generate_rotation(parent[i]))
 
-    # 2-Swap with random pieces
-    random.shuffle(inner_idx)
-    for i in inner_idx[: len(inner_idx) // 4]:
-        j = random.choice(inner_idx)
-        child[i], child[j] = random.choice(
-            e.generate_rotation(parent[j])
-        ), random.choice(e.generate_rotation(parent[i]))
+    # # 2-Swap with random pieces
+    # random.shuffle(inner_idx)
+    # for i in inner_idx[: len(inner_idx) // 4]:
+    #     j = random.choice(inner_idx)
+    #     child[i], child[j] = random.choice(
+    #         e.generate_rotation(parent[j])
+    #     ), random.choice(e.generate_rotation(parent[i]))
 
     return child
 
@@ -439,14 +444,18 @@ def genetic_algorithm_border(
 
 
 def get_heuristic_solution(e: EternityPuzzle):
-    if os.path.exists(f"heuristic_solution_{e.board_size}.json"):
-        with open(f"heuristic_solution_{e.board_size}.json", "r") as f:
+    if os.path.exists(f"heuristic_solutions/heuristic_solution_{e.board_size}.json"):
+        with open(
+            f"heuristic_solutions/heuristic_solution_{e.board_size}.json", "r"
+        ) as f:
             solution = json.load(f)
             solution = [tuple(sublst) for sublst in solution]
 
     else:
         solution = solver_heuristic_layer.solve_heuristic(e)[0]
-        with open(f"heuristic_solution_{e.board_size}.json", "w") as f:
+        with open(
+            f"heuristic_solutions/heuristic_solution_{e.board_size}.json", "w"
+        ) as f:
             json.dump(solution, f)
 
     return solution
