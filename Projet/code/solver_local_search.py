@@ -27,7 +27,7 @@ def solve_local_search(e: EternityPuzzle):
     random.seed(1234)
     # solution = generate_random_solution(e)
     solution = solver_heuristic_layer.solve_heuristic(e)[0]
-    return local_search(e, solution, search_time=20 * 60)
+    return local_search(e, solution, search_time=2 * 60)
 
 
 def local_search(

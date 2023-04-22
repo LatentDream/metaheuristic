@@ -54,7 +54,11 @@ def solve_advanced(e: EternityPuzzle):
     visualize(e, border, "Border")
 
     # Solve the inner puzzle
+<<<<<<< HEAD
     time_limit = 19 * 60  # 20 * 60
+=======
+    time_limit = 2 * 60  # 20 * 60
+>>>>>>> b53e3ba (Adding solutions file)
 
     pop_size = 100
     mutation_rate = 0.01
@@ -98,89 +102,95 @@ def genetic_algorithm(
     best_fitness = -inf
     improvement_timer = 0
     time_over = False
+    tic = start_time
 
-    while not time_over:
-        # Generate the initial population
-        population = generate_population(
-            e, pop_size, elite_size=elite_size, border=border
-        )
-        population = sorted(population, key=lambda s: fitness(e, s), reverse=True)
+    with tqdm(total=time_limit) as progress_bar:
 
-        # Iterate over the generations
-        for _ in range(num_generations):
-            # The parents selected for the next generation
-            parents = population[: pop_size // 2]
-
-            # The elite is kept intact for the next generation
-            elite = population[:elite_size]
-
-            # Create the offspring for the next generation
-            offspring = []
-            for j in range(len(parents) // 2):
-                parent1 = parents[j]
-                parent2 = parents[len(parents) - j - 1]
-
-                child1 = inner_crossover(e, parent1)
-                child2 = inner_crossover(e, parent2)
-
-                child1 = mutation(e, child1, mutation_rate)
-                child2 = mutation(e, child2, mutation_rate)
-
-                offspring.append(child1)
-                offspring.append(child2)
-
-            # Select the survivors for the next generation : we keep the same population size
-            population = (
-                selection(
-                    e,
-                    parents + offspring,
-                    pop_size,
-                    tournament_size,
-                    tournament_accepted,
-                )
-                + elite
+        while not time_over:
+            # Generate the initial population
+            population = generate_population(
+                e, pop_size, elite_size=elite_size, border=border
             )
-
             population = sorted(population, key=lambda s: fitness(e, s), reverse=True)
 
-            # Update the best solution found so far
-            fittest_solution = population[0]
-            fittest_score = fitness(e, fittest_solution)
-            # print(fittest_score)
-            if fittest_score >= best_fitness_no_improvement:
-                best_fitness_no_improvement = fittest_score
-                improved_solution, improved_fitness = local_search(
-                    e, fittest_solution, max_time_local_search=max_time_local_search
-                )
-                population.insert(0, improved_solution)
+            # Iterate over the generations
+            for _ in range(num_generations):
+                # The parents selected for the next generation
+                parents = population[: pop_size // 2]
 
-                if improved_fitness > best_fitness:
-                    best_fitness = improved_fitness
-                    best_solution = deepcopy(improved_solution)
-                    best_cost = e.get_total_n_conflict(best_solution)
-                    print("BEST SOLUTION FOUND : Cost {}".format(best_cost), end="\r")
+                # The elite is kept intact for the next generation
+                elite = population[:elite_size]
 
-                    for instance, length in file_names.items():
-                        if length == len(best_solution):
-                            instance_name = instance
-                    visualize(
+                # Create the offspring for the next generation
+                offspring = []
+                for j in range(len(parents) // 2):
+                    parent1 = parents[j]
+                    parent2 = parents[len(parents) - j - 1]
+
+                    child1 = inner_crossover(e, parent1)
+                    child2 = inner_crossover(e, parent2)
+
+                    child1 = mutation(e, child1, mutation_rate)
+                    child2 = mutation(e, child2, mutation_rate)
+
+                    offspring.append(child1)
+                    offspring.append(child2)
+
+                # Select the survivors for the next generation : we keep the same population size
+                population = (
+                    selection(
                         e,
-                        best_solution,
-                        "visualisation/{}/Cost {}".format(instance_name, best_cost),
+                        parents + offspring,
+                        pop_size,
+                        tournament_size,
+                        tournament_accepted,
                     )
+                    + elite
+                )
 
-                improvement_timer = 0
+                population = sorted(population, key=lambda s: fitness(e, s), reverse=True)
 
-            else:
-                improvement_timer += 1
-                # If no improvement is made during too many generations, restart on a new population
-                if improvement_timer > no_progress_generations:
+                # Update the best solution found so far
+                fittest_solution = population[0]
+                fittest_score = fitness(e, fittest_solution)
+                # print(fittest_score)
+                if fittest_score >= best_fitness_no_improvement:
+                    best_fitness_no_improvement = fittest_score
+                    improved_solution, improved_fitness = local_search(
+                        e, fittest_solution, max_time_local_search=max_time_local_search
+                    )
+                    population.insert(0, improved_solution)
+
+                    if improved_fitness > best_fitness:
+                        best_fitness = improved_fitness
+                        best_solution = deepcopy(improved_solution)
+                        best_cost = e.get_total_n_conflict(best_solution)
+                        print("BEST SOLUTION FOUND : Cost {}".format(best_cost), end="\r")
+
+                        for instance, length in file_names.items():
+                            if length == len(best_solution):
+                                instance_name = instance
+                        visualize(
+                            e,
+                            best_solution,
+                            "visualisation/{}/Cost {}".format(instance_name, best_cost),
+                        )
+
                     improvement_timer = 0
-                    break
 
-            if time.time() - start_time > time_limit:
-                time_over = True
-                break
+                else:
+                    improvement_timer += 1
+                    # If no improvement is made during too many generations, restart on a new population
+                    if improvement_timer > no_progress_generations:
+                        improvement_timer = 0
+                        break
+
+                if (tac := time.time()) - start_time < time_limit:
+                    progress_bar.update(tac - tic)
+                    tic = tac
+                else:
+                    time_over = True
+                    break
 
     return best_solution, e.get_total_n_conflict(best_solution)
 

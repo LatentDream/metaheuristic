@@ -23,9 +23,9 @@ def solve_lns(e: EternityPuzzle):
     debug = False
 
     #? Option
-    tabu_queue_size=10
+    tabu_queue_size= 5
     lns_search_time = 2 * MINUTE
-    neighborhood_size = 5
+    neighborhood_size = 20
     allow_adjacent = True
 
     #?  Solve the border
@@ -44,7 +44,7 @@ def solve_lns(e: EternityPuzzle):
     # initial_solution, nb_conflict = genetic_algorithm_border(e, num_generations=num_generations, no_progress_generations=no_progress_generations, elite_size=elite_size, tournament_size=tournament_size, tournament_accepted=tournament_accepted, pop_size=pop_size, time_limit=border_time, debug_visualization=debug)
     initial_solution, nb_conflict = solver_heuristic_layer.solve_heuristic(e)
     print("  [INFO] Border final cost : {}".format(nb_conflict))
-    # initial_solution = generate_random_inner_solution(e, initial_solution)
+    initial_solution = generate_random_inner_solution(e, initial_solution)
     if debug: visualize(e, initial_solution, "debug/debuging_init")
 
     return lns(e, initial_solution, search_time=lns_search_time, neighborhood_size=neighborhood_size, allow_adjacent=allow_adjacent, tabu_queue_size=tabu_queue_size, debug=debug)
