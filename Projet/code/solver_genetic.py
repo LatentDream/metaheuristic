@@ -54,11 +54,7 @@ def solve_advanced(e: EternityPuzzle):
     visualize(e, border, "Border")
 
     # Solve the inner puzzle
-<<<<<<< HEAD
     time_limit = 19 * 60  # 20 * 60
-=======
-    time_limit = 2 * 60  # 20 * 60
->>>>>>> b53e3ba (Adding solutions file)
 
     pop_size = 100
     mutation_rate = 0.01
