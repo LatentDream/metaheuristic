@@ -120,11 +120,6 @@ def solve_heuristic(e: EternityPuzzle):
                         color_count = update_color_counter(
                             color_count, solution[position]
                         )
-                    # print(
-                    #     evaluate_color_counter(update_color_counter(color_count, piece))
-                    #     -10
-                    #     > evaluate_color_counter(color_count)
-                    # )
 
             if len(inner) > 0:
                 inner.remove(best_piece)
